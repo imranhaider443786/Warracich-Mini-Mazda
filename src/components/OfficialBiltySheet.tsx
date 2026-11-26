@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   loadHalftoneTruckDataUrl,
-  PAKISTAN_FLAG_DATA_URL,
   TRUCK_WATERMARK_URL,
   WHATSAPP_ICON_DATA_URL,
 } from '../services/biltyArtwork';
@@ -149,75 +148,65 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
       >
         {/* Top Stationery Banner — Photo-Matched Positions & Masthead Clearance */}
         <div className="grid grid-cols-12 gap-3 pb-0.5">
-          {/* Right Side: Flag, 24hr Oval next to Registered, Full-Width 3D Masthead & Triple-Line Subtitle */}
+          {/* Right Side: Centered 786, Raised Full Masthead (جیوے + Business Name + رجسٹرڈ + 24hr Oval), Triple-Line Subtitle */}
           <div className="col-span-7 flex flex-col justify-between">
-            <div className="flex items-center justify-start gap-4 px-1">
-              <div className="flex items-center gap-2">
-                {isDefaultSlogan ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-nastaliq text-[16px] font-bold leading-[1.7] text-slate-900">
-                      جیوے
-                    </span>
-                    <span className="font-sans text-[19px] font-black tracking-tight text-slate-900 tabular-nums">
-                      786
-                    </span>
-                    <img
-                      src={PAKISTAN_FLAG_DATA_URL}
-                      alt="Pakistan Flag"
-                      className="h-8 w-13 shrink-0 object-contain"
+            {/* Top Row: 786 Centered (Flag Removed) */}
+            <div className="flex items-center justify-center pt-0.5">
+              {isDefaultSlogan || sloganClean.includes('786') ? (
+                <span
+                  className="font-sans text-[22px] font-black leading-none tracking-wide text-slate-900 tabular-nums"
+                  dir="ltr"
+                >
+                  786
+                </span>
+              ) : (
+                <span className="font-nastaliq text-sm font-bold leading-[1.6] text-slate-900">
+                  {st.topSloganUrdu}
+                </span>
+              )}
+            </div>
+
+            {/* Raised Masthead Row: جیوے + وڑائچ منی مزدا گڈز + رجسٹرڈ + 24 گھنٹے سروس Sticker */}
+            <div className="mt-0.5 mb-2.5 flex items-center justify-between gap-2">
+              <div
+                ref={mastheadBoxRef}
+                className="flex min-w-0 flex-1 items-center justify-center overflow-visible"
+              >
+                <div
+                  ref={mastheadTextRef}
+                  className="inline-flex origin-center items-baseline justify-center gap-2 whitespace-nowrap"
+                  style={{
+                    transform: `rotate(-0.8deg) scaleX(${mastheadScaleX})`,
+                  }}
+                >
+                  <span className="font-nastaliq text-[34px] font-bold leading-[1.45] text-slate-900">
+                    جیوے
+                  </span>
+                  <h2 className="font-nastaliq font-bold leading-[1.45]">
+                    <DualOutlineUrdu
+                      text={mainMasthead}
+                      sizeClass="text-[34px]"
+                      backClass="bilty-outline-back-lg"
                     />
-                    <span className="font-nastaliq -rotate-6 ps-1 text-[19px] font-bold leading-[1.7] text-slate-900">
-                      رجسٹرڈ
+                  </h2>
+                  {citySuffix && (
+                    <span className="bilty-masthead-outline font-nastaliq text-[28px] font-bold leading-[1.45]">
+                      {citySuffix}
                     </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="font-nastaliq text-sm font-bold leading-[1.7] text-slate-900">
-                      {st.topSloganUrdu}
-                    </span>
-                    <img
-                      src={PAKISTAN_FLAG_DATA_URL}
-                      alt="Pakistan Flag"
-                      className="h-8 w-12 shrink-0 object-contain"
-                    />
-                  </div>
-                )}
+                  )}
+                  <span className="font-nastaliq text-[34px] font-bold leading-[1.45] text-slate-900">
+                    رجسٹرڈ
+                  </span>
+                </div>
               </div>
 
-              <div className="flex h-10 min-w-[78px] flex-col items-center justify-center rounded-[50%] bg-[#0f7a38] px-3 text-center text-white">
+              <div className="flex h-11 min-w-[74px] shrink-0 flex-col items-center justify-center rounded-[50%] bg-[#0f7a38] px-2.5 text-center text-white">
                 <span className="font-sans text-[13.5px] font-extrabold leading-none">
                   24
                 </span>
                 <span className="font-nastaliq mt-0.5 text-[9.5px] font-bold leading-[1.4]">
                   گھنٹے سروس
                 </span>
-              </div>
-            </div>
-
-            {/* Full-Width 3D Calligraphic Masthead with Clean Clearance Above Subtitle */}
-            <div
-              ref={mastheadBoxRef}
-              className="mt-0.5 mb-2 flex w-full items-center justify-center overflow-visible"
-            >
-              <div
-                ref={mastheadTextRef}
-                className="inline-flex origin-center items-baseline justify-center gap-2.5 whitespace-nowrap"
-                style={{
-                  transform: `rotate(-1deg) scaleX(${mastheadScaleX})`,
-                }}
-              >
-                <h2 className="font-nastaliq font-bold leading-[1.48]">
-                  <DualOutlineUrdu
-                    text={mainMasthead}
-                    sizeClass="text-[38px]"
-                    backClass="bilty-outline-back-lg"
-                  />
-                </h2>
-                {citySuffix && (
-                  <span className="bilty-masthead-outline font-nastaliq text-[28px] font-bold leading-[1.5]">
-                    {citySuffix}
-                  </span>
-                )}
               </div>
             </div>
 

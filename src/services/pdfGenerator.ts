@@ -17,7 +17,6 @@ import {
 import {
   loadHalftoneTruckCanvas,
   loadImageAsset,
-  PAKISTAN_FLAG_DATA_URL,
   TRUCK_WATERMARK_URL,
   WHATSAPP_ICON_DATA_URL,
 } from './biltyArtwork';
@@ -346,12 +345,10 @@ export async function generateBiltyPdfBlob(
     ]);
   }
 
-  const [flagRes, waRes, truckRes] = await Promise.allSettled([
-    loadImageAsset(PAKISTAN_FLAG_DATA_URL),
+  const [waRes, truckRes] = await Promise.allSettled([
     loadImageAsset(WHATSAPP_ICON_DATA_URL),
     loadHalftoneTruckCanvas(TRUCK_WATERMARK_URL),
   ]);
-  const flagImg = flagRes.status === 'fulfilled' ? flagRes.value : null;
   const waImg = waRes.status === 'fulfilled' ? waRes.value : null;
   const truckCanvas = truckRes.status === 'fulfilled' ? truckRes.value : null;
 
@@ -372,51 +369,32 @@ export async function generateBiltyPdfBlob(
   const rightZoneStart = rightEdge - rightHalfW; // 765px
   const leftHalfW = innerW - rightHalfW - 20; // 731px
 
-  // 1) Top-right slogan + Pakistan flag + registered + 24hr green oval
+  // 1) Centered 786 at top of right panel (Flag removed)
   const sloganClean = (st.topSloganUrdu || '').replace(/[·•]/g, ' ').trim();
   const isDefaultSlogan =
     sloganClean.includes('جیوے') && sloganClean.includes('786');
+  const brandCenterX = rightZoneStart + rightHalfW / 2;
 
-  if (isDefaultSlogan) {
-    ctx.fillStyle = '#0f172a';
-    ctx.font = getNastaliqFont(700, 26);
-    ctx.textAlign = 'right';
-    ctx.fillText('جیوے', rightEdge - 6, y + 28);
-
-    ctx.font = getCleanDataFont(700, 30);
+  ctx.fillStyle = '#0f172a';
+  if (isDefaultSlogan || sloganClean.includes('786')) {
+    ctx.font = getCleanDataFont(700, 32);
     ctx.direction = 'ltr';
-    ctx.textAlign = 'right';
-    ctx.fillText('786', rightEdge - 82, y + 28);
-    ctx.direction = 'rtl';
-
-    if (flagImg) {
-      ctx.drawImage(flagImg, rightEdge - 246, y + 2, 92, 56);
-    }
-
-    ctx.save();
-    ctx.translate(rightEdge - 304, y + 26);
-    ctx.rotate(-0.1);
-    ctx.fillStyle = '#0f172a';
-    ctx.font = getNastaliqFont(700, 30);
     ctx.textAlign = 'center';
-    ctx.fillText('رجسٹرڈ', 0, 0);
-    ctx.restore();
+    ctx.fillText('786', brandCenterX, y + 20);
+    ctx.direction = 'rtl';
   } else {
-    ctx.fillStyle = '#0f172a';
-    ctx.font = getNastaliqFont(700, 24);
-    ctx.textAlign = 'right';
-    ctx.fillText(st.topSloganUrdu, rightEdge - 6, y + 26);
-    if (flagImg) {
-      ctx.drawImage(flagImg, rightEdge - 300, y + 2, 86, 52);
-    }
+    ctx.font = getNastaliqFont(700, 22);
+    ctx.textAlign = 'center';
+    ctx.fillText(st.topSloganUrdu, brandCenterX, y + 20);
   }
 
-  // Green 24hr oval emblem placed next to Registered (matching physical pad)
-  const ovalCx = rightEdge - 426;
-  const ovalCy = y + 29;
+  // 2) Green 24hr oval sticker placed after the business name on the masthead band
+  const mastheadY = y + 104;
+  const ovalCx = rightZoneStart + 66;
+  const ovalCy = mastheadY + 2;
   ctx.fillStyle = '#0f7a38';
   ctx.beginPath();
-  ctx.ellipse(ovalCx, ovalCy, 64, 29, 0, 0, Math.PI * 2);
+  ctx.ellipse(ovalCx, ovalCy, 64, 30, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
@@ -425,7 +403,7 @@ export async function generateBiltyPdfBlob(
   ctx.font = getNastaliqFont(700, 14.5);
   ctx.fillText('گھنٹے سروس', ovalCx, ovalCy + 11);
 
-  // 2) Full-Width Slightly Tilted 3D-Extruded Calligraphic Masthead with Subtitle Clearance
+  // 3) Raised Masthead Row: جیوے + Business Name + رجسٹرڈ (same size, ample gap above subtitle)
   const titleTrimmed = (st.brandTitleUrdu || '').trim();
   const hasSamundriSuffix =
     titleTrimmed.endsWith('سمندری') && titleTrimmed.length > 7;
@@ -434,89 +412,92 @@ export async function generateBiltyPdfBlob(
     : titleTrimmed;
   const citySuffix = hasSamundriSuffix ? 'سمندری' : '';
 
-  const mastheadY = y + 122;
-  const brandCenterX = rightZoneStart + rightHalfW / 2;
-  const targetMastheadW = rightHalfW - 28;
+  const mastheadLeftBound = rightZoneStart + 142;
+  const mastheadRightBound = rightEdge - 6;
+  const mastheadCenterX = (mastheadLeftBound + mastheadRightBound) / 2;
+  const targetMastheadW = mastheadRightBound - mastheadLeftBound - 12;
 
   ctx.save();
-  ctx.translate(brandCenterX, mastheadY);
-  ctx.rotate(-0.015);
+  ctx.translate(mastheadCenterX, mastheadY);
+  ctx.rotate(-0.012);
+
+  let mastFontSize = 62;
+  const gapW = 16;
+  const measureGroup = (sz: number) => {
+    ctx.font = getNastaliqFont(700, sz);
+    const jW = ctx.measureText('جیوے').width;
+    const mW = ctx.measureText(mainMasthead).width;
+    const rW = ctx.measureText('رجسٹرڈ').width;
+    let cW = 0;
+    if (citySuffix) {
+      ctx.font = getNastaliqFont(700, Math.round(sz * 0.72));
+      cW = ctx.measureText(citySuffix).width + gapW;
+    }
+    return {
+      jW,
+      mW,
+      cW,
+      rW,
+      total: jW + gapW + mW + cW + gapW + rW,
+    };
+  };
+
+  let dims = measureGroup(mastFontSize);
+  if (dims.total > targetMastheadW) {
+    mastFontSize = Math.max(44, Math.floor(mastFontSize * (targetMastheadW / dims.total)));
+    dims = measureGroup(mastFontSize);
+  }
+  const stretchX = Math.max(0.92, Math.min(1.18, targetMastheadW / Math.max(1, dims.total)));
+  ctx.scale(stretchX, 1);
+
+  // RTL placement inside local origin: Rightmost = جیوے, Center = mainMasthead (+ citySuffix), Leftmost = رجسٹرڈ
+  const startRight = dims.total / 2;
+  const jeewayCenterX = startRight - dims.jW / 2;
+  const mainCenterX = startRight - dims.jW - gapW - dims.mW / 2;
+  const cityCenterX =
+    startRight - dims.jW - gapW - dims.mW - (dims.cW > 0 ? dims.cW / 2 : 0);
+  const regCenterX = -dims.total / 2 + dims.rW / 2;
+
+  ctx.font = getNastaliqFont(700, mastFontSize);
+  ctx.textAlign = 'center';
+
+  // جیوے (same dark slate style, matching size)
+  ctx.fillStyle = '#0f172a';
+  ctx.fillText('جیوے', jeewayCenterX, 0);
+
+  // Business Name (bold red with white outline + 3D shadow)
+  ctx.save();
+  ctx.shadowColor = '#0f172a';
+  ctx.shadowOffsetX = 3.5;
+  ctx.shadowOffsetY = 3.5;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 8.5;
+  ctx.lineJoin = 'round';
+  ctx.strokeText(mainMasthead, mainCenterX, 0);
+  ctx.restore();
+  ctx.fillStyle = '#dc2626';
+  ctx.fillText(mainMasthead, mainCenterX, 0);
 
   if (citySuffix) {
-    let mainSize = 74;
-    let citySize = 48;
-    ctx.font = getNastaliqFont(700, mainSize);
-    let mainW = ctx.measureText(mainMasthead).width;
-    ctx.font = getNastaliqFont(700, citySize);
-    let cityW = ctx.measureText(citySuffix).width;
-    let totalW = mainW + cityW + 18;
-    if (totalW > targetMastheadW) {
-      const ratio = targetMastheadW / totalW;
-      mainSize = Math.max(50, Math.floor(mainSize * ratio));
-      citySize = Math.max(34, Math.floor(citySize * ratio));
-      ctx.font = getNastaliqFont(700, mainSize);
-      mainW = ctx.measureText(mainMasthead).width;
-      ctx.font = getNastaliqFont(700, citySize);
-      cityW = ctx.measureText(citySuffix).width;
-      totalW = mainW + cityW + 16;
-    }
-    const stretchX = Math.max(1, Math.min(1.25, targetMastheadW / Math.max(1, totalW)));
-    ctx.scale(stretchX, 1);
-
-    const mainCenterX = totalW / 2 - mainW / 2;
-    const cityCenterX = -totalW / 2 + cityW / 2;
-
-    ctx.font = getNastaliqFont(700, mainSize);
-    ctx.textAlign = 'center';
-    ctx.save();
-    ctx.shadowColor = '#0f172a';
-    ctx.shadowOffsetX = 4;
-    ctx.shadowOffsetY = 4;
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 9;
-    ctx.lineJoin = 'round';
-    ctx.strokeText(mainMasthead, mainCenterX, 0);
-    ctx.restore();
-    ctx.fillStyle = '#dc2626';
-    ctx.fillText(mainMasthead, mainCenterX, 0);
-
-    ctx.font = getNastaliqFont(700, citySize);
+    ctx.font = getNastaliqFont(700, Math.round(mastFontSize * 0.72));
     ctx.save();
     ctx.shadowColor = '#0f172a';
     ctx.shadowOffsetX = 2.5;
     ctx.shadowOffsetY = 2.5;
     ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 4.5;
     ctx.lineJoin = 'round';
-    ctx.strokeText(citySuffix, cityCenterX, 8);
+    ctx.strokeText(citySuffix, cityCenterX, 6);
     ctx.restore();
     ctx.fillStyle = '#f8fafc';
-    ctx.fillText(citySuffix, cityCenterX, 8);
-  } else {
-    let fontSize = 74;
-    ctx.font = getNastaliqFont(700, fontSize);
-    let textW = ctx.measureText(mainMasthead).width;
-    if (textW > targetMastheadW) {
-      fontSize = Math.max(50, Math.floor(fontSize * (targetMastheadW / textW)));
-      ctx.font = getNastaliqFont(700, fontSize);
-      textW = ctx.measureText(mainMasthead).width;
-    }
-    const stretchX = Math.max(1, Math.min(1.32, targetMastheadW / Math.max(1, textW)));
-    ctx.scale(stretchX, 1);
-
-    ctx.textAlign = 'center';
-    ctx.save();
-    ctx.shadowColor = '#0f172a';
-    ctx.shadowOffsetX = 4;
-    ctx.shadowOffsetY = 4;
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 9;
-    ctx.lineJoin = 'round';
-    ctx.strokeText(mainMasthead, 0, 0);
-    ctx.restore();
-    ctx.fillStyle = '#dc2626';
-    ctx.fillText(mainMasthead, 0, 0);
+    ctx.fillText(citySuffix, cityCenterX, 6);
+    ctx.font = getNastaliqFont(700, mastFontSize);
   }
+
+  // رجسٹرڈ (same size at end of business name)
+  ctx.fillStyle = '#0f172a';
+  ctx.fillText('رجسٹرڈ', regCenterX, 0);
+
   ctx.restore();
 
   // 3) Subtitle flanked by triple horizontal rules
