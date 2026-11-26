@@ -16,9 +16,7 @@ import {
 
 import {
   loadHalftoneTruckCanvas,
-  loadImageAsset,
   TRUCK_WATERMARK_URL,
-  WHATSAPP_ICON_DATA_URL,
 } from './biltyArtwork';
 
 const PAGE_W = 1240; // High-DPI A4 portrait canvas width
@@ -345,31 +343,30 @@ export async function generateBiltyPdfBlob(
     ]);
   }
 
-  const [waRes, truckRes] = await Promise.allSettled([
-    loadImageAsset(WHATSAPP_ICON_DATA_URL),
+  const truckRes = await Promise.allSettled([
     loadHalftoneTruckCanvas(TRUCK_WATERMARK_URL),
   ]);
-  const waImg = waRes.status === 'fulfilled' ? waRes.value : null;
-  const truckCanvas = truckRes.status === 'fulfilled' ? truckRes.value : null;
+  const truckCanvas =
+    truckRes[0].status === 'fulfilled' ? truckRes[0].value : null;
 
   // Logical A4 landscape coordinates backed by 2x HiDPI (3508 x 2480 = 300 DPI)
   const W = 1754;
   const H = 1240;
-  const M = 14;
+  const M = 10;
   const { canvas, ctx } = createPageCanvas('ur', W, H, 2);
   const st = settings.biltyStationery;
 
   const innerX = M;
-  const innerW = W - M * 2; // 1726px edge-to-edge
-  const rightEdge = innerX + innerW; // 1740px
-  let y = 18;
+  const innerW = W - M * 2; // 1734px edge-to-edge
+  const rightEdge = innerX + innerW; // 1744px
+  let y = 14;
 
   // ── TOP BANNER (Edge-to-Edge Dense Stationery) ──
-  const rightHalfW = 975;
-  const rightZoneStart = rightEdge - rightHalfW; // 765px
-  const leftHalfW = innerW - rightHalfW - 20; // 731px
+  const rightHalfW = 985;
+  const rightZoneStart = rightEdge - rightHalfW; // 759px
+  const leftHalfW = innerW - rightHalfW - 18; // 731px
 
-  // 1) Centered 786 at top of right panel (Flag removed)
+  // 1) Centered 786 at top of right panel
   const sloganClean = (st.topSloganUrdu || '').replace(/[·•]/g, ' ').trim();
   const isDefaultSlogan =
     sloganClean.includes('جیوے') && sloganClean.includes('786');
@@ -388,22 +385,8 @@ export async function generateBiltyPdfBlob(
     ctx.fillText(st.topSloganUrdu, brandCenterX, y + 20);
   }
 
-  // 2) Green 24hr oval sticker placed after the business name on the masthead band
+  // 2) Masthead Row: Small جیوے (right) + Elongated Crimson/Gold Business Name + Small رجسٹرڈ (left)
   const mastheadY = y + 104;
-  const ovalCx = rightZoneStart + 66;
-  const ovalCy = mastheadY + 2;
-  ctx.fillStyle = '#0f7a38';
-  ctx.beginPath();
-  ctx.ellipse(ovalCx, ovalCy, 64, 30, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.font = getCleanDataFont(700, 21);
-  ctx.fillText('24', ovalCx, ovalCy - 10);
-  ctx.font = getNastaliqFont(700, 14.5);
-  ctx.fillText('گھنٹے سروس', ovalCx, ovalCy + 11);
-
-  // 3) Raised Masthead Row: جیوے + Business Name + رجسٹرڈ (same size, ample gap above subtitle)
   const titleTrimmed = (st.brandTitleUrdu || '').trim();
   const hasSamundriSuffix =
     titleTrimmed.endsWith('سمندری') && titleTrimmed.length > 7;
@@ -412,70 +395,75 @@ export async function generateBiltyPdfBlob(
     : titleTrimmed;
   const citySuffix = hasSamundriSuffix ? 'سمندری' : '';
 
-  const mastheadLeftBound = rightZoneStart + 142;
-  const mastheadRightBound = rightEdge - 6;
+  ctx.font = getNastaliqFont(700, 31);
+  ctx.fillStyle = '#0f172a';
+  const jeewayW = ctx.measureText('جیوے').width;
+  const regW = ctx.measureText('رجسٹرڈ').width;
+
+  ctx.textAlign = 'right';
+  ctx.fillText('جیوے', rightEdge - 6, mastheadY + 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('رجسٹرڈ', rightZoneStart + 4, mastheadY + 12);
+
+  const mastheadLeftBound = rightZoneStart + regW + 22;
+  const mastheadRightBound = rightEdge - jeewayW - 22;
   const mastheadCenterX = (mastheadLeftBound + mastheadRightBound) / 2;
-  const targetMastheadW = mastheadRightBound - mastheadLeftBound - 12;
+  const targetMastheadW = Math.max(200, mastheadRightBound - mastheadLeftBound);
 
   ctx.save();
   ctx.translate(mastheadCenterX, mastheadY);
-  ctx.rotate(-0.012);
+  ctx.rotate(-0.01);
 
-  let mastFontSize = 62;
-  const gapW = 16;
-  const measureGroup = (sz: number) => {
+  let mastFontSize = 66;
+  const gapW = 14;
+  const measureHeadline = (sz: number) => {
     ctx.font = getNastaliqFont(700, sz);
-    const jW = ctx.measureText('جیوے').width;
     const mW = ctx.measureText(mainMasthead).width;
-    const rW = ctx.measureText('رجسٹرڈ').width;
     let cW = 0;
     if (citySuffix) {
       ctx.font = getNastaliqFont(700, Math.round(sz * 0.72));
       cW = ctx.measureText(citySuffix).width + gapW;
     }
     return {
-      jW,
       mW,
       cW,
-      rW,
-      total: jW + gapW + mW + cW + gapW + rW,
+      total: mW + cW,
     };
   };
 
-  let dims = measureGroup(mastFontSize);
+  let dims = measureHeadline(mastFontSize);
   if (dims.total > targetMastheadW) {
-    mastFontSize = Math.max(44, Math.floor(mastFontSize * (targetMastheadW / dims.total)));
-    dims = measureGroup(mastFontSize);
+    mastFontSize = Math.max(
+      48,
+      Math.floor(mastFontSize * (targetMastheadW / Math.max(1, dims.total)))
+    );
+    dims = measureHeadline(mastFontSize);
   }
-  const stretchX = Math.max(0.92, Math.min(1.18, targetMastheadW / Math.max(1, dims.total)));
+  const stretchX = Math.max(
+    0.88,
+    Math.min(1.56, targetMastheadW / Math.max(1, dims.total))
+  );
   ctx.scale(stretchX, 1);
 
-  // RTL placement inside local origin: Rightmost = جیوے, Center = mainMasthead (+ citySuffix), Leftmost = رجسٹرڈ
   const startRight = dims.total / 2;
-  const jeewayCenterX = startRight - dims.jW / 2;
-  const mainCenterX = startRight - dims.jW - gapW - dims.mW / 2;
+  const mainCenterX = startRight - dims.mW / 2;
   const cityCenterX =
-    startRight - dims.jW - gapW - dims.mW - (dims.cW > 0 ? dims.cW / 2 : 0);
-  const regCenterX = -dims.total / 2 + dims.rW / 2;
+    startRight - dims.mW - (dims.cW > 0 ? dims.cW / 2 : 0);
 
   ctx.font = getNastaliqFont(700, mastFontSize);
   ctx.textAlign = 'center';
 
-  // جیوے (same dark slate style, matching size)
-  ctx.fillStyle = '#0f172a';
-  ctx.fillText('جیوے', jeewayCenterX, 0);
-
-  // Business Name (bold red with white outline + 3D shadow)
+  // Standout Business Name: Deep Crimson fill (#991b1b) + Thick Gold-Yellow outline (#fde047) + Dark 3D shadow
   ctx.save();
   ctx.shadowColor = '#0f172a';
-  ctx.shadowOffsetX = 3.5;
-  ctx.shadowOffsetY = 3.5;
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 8.5;
+  ctx.shadowOffsetX = 4;
+  ctx.shadowOffsetY = 4;
+  ctx.strokeStyle = '#fde047';
+  ctx.lineWidth = 10.5;
   ctx.lineJoin = 'round';
   ctx.strokeText(mainMasthead, mainCenterX, 0);
   ctx.restore();
-  ctx.fillStyle = '#dc2626';
+  ctx.fillStyle = '#991b1b';
   ctx.fillText(mainMasthead, mainCenterX, 0);
 
   if (citySuffix) {
@@ -491,21 +479,19 @@ export async function generateBiltyPdfBlob(
     ctx.restore();
     ctx.fillStyle = '#f8fafc';
     ctx.fillText(citySuffix, cityCenterX, 6);
-    ctx.font = getNastaliqFont(700, mastFontSize);
   }
-
-  // رجسٹرڈ (same size at end of business name)
-  ctx.fillStyle = '#0f172a';
-  ctx.fillText('رجسٹرڈ', regCenterX, 0);
 
   ctx.restore();
 
-  // 3) Subtitle flanked by triple horizontal rules
-  const subY = y + 216;
+  // 3) Deduplicated Subtitle flanked by triple horizontal rules
+  const subY = y + 212;
+  const subtitleClean = (st.brandSubtitleUrdu || '')
+    .trim()
+    .replace(/^گڈز\s+/, '');
   ctx.fillStyle = '#0f172a';
   ctx.font = getNastaliqFont(700, 21);
   ctx.textAlign = 'center';
-  const subText = fitText(ctx, st.brandSubtitleUrdu, rightHalfW - 140);
+  const subText = fitText(ctx, subtitleClean, rightHalfW - 140);
   const subTextW = ctx.measureText(subText).width;
   ctx.fillText(subText, brandCenterX, subY);
 
@@ -529,12 +515,12 @@ export async function generateBiltyPdfBlob(
     }
   });
 
-  // 4) Left Side Contact Cards (Yellow Primary + Red 43 Group Oval + Green Secondary)
-  const yellowW = Math.round(leftHalfW * 0.58); // 424px
-  const greenW = leftHalfW - yellowW - 14; // 293px
-  const yellowX = innerX + greenW + 14;
+  // 4) Left Side Contact Cards (Yellow Imran Haider Box w/o WhatsApp/Ufone + Paired Equal-Size Double-Bordered Stickers)
+  const yellowW = Math.round(leftHalfW * 0.58); // ~424px
+  const badgeColW = leftHalfW - yellowW - 14; // ~293px
+  const yellowX = innerX + badgeColW + 14;
 
-  // Yellow Box (no internal divider line, conflict-free title/phone gap)
+  // Yellow Box: Enlarged & cleanly fitted to box edges without WhatsApp/Ufone icons
   ctx.fillStyle = '#fef3c7';
   ctx.fillRect(yellowX, y, yellowW, 232);
   ctx.strokeStyle = '#d97706';
@@ -542,56 +528,63 @@ export async function generateBiltyPdfBlob(
   ctx.strokeRect(yellowX, y, yellowW, 232);
 
   ctx.fillStyle = '#dc2626';
-  ctx.font = getNastaliqFont(700, 19.5);
+  ctx.font = getNastaliqFont(700, 21);
   ctx.textAlign = 'center';
   ctx.fillText(
     fitText(ctx, st.primaryContactTitle, yellowW - 16),
     yellowX + yellowW / 2,
-    y + 21
+    y + 22
   );
 
   ctx.fillStyle = '#dc2626';
-  ctx.font = getCondensedFont(700, 35);
   ctx.direction = 'ltr';
   st.primaryContactPhones.slice(0, 4).forEach((ph, idx) => {
-    const py = y + 66 + idx * 44;
-    const textCenterX = yellowX + yellowW / 2 + (idx === 1 || idx === 2 ? 15 : 0);
-
-    ctx.font = getCondensedFont(700, 35);
-    const numW = ctx.measureText(ph).width * 1.06;
-
+    const py = y + 67 + idx * 45;
+    ctx.font = getCondensedFont(700, 39);
     ctx.save();
-    ctx.translate(textCenterX, py);
-    ctx.scale(1.06, 1);
+    ctx.translate(yellowX + yellowW / 2, py);
+    ctx.scale(1.1, 1);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#dc2626';
     ctx.fillText(ph, 0, 0);
     ctx.restore();
-
-    if (idx === 1 && waImg) {
-      ctx.drawImage(waImg, textCenterX - numW / 2 - 28, py - 12, 22, 22);
-    }
-    if (idx === 2) {
-      const ux = textCenterX - numW / 2 - 42;
-      ctx.font = getCleanDataFont(700, 12);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ea580c';
-      ctx.fillText('u', ux, py);
-      const uW = ctx.measureText('u').width;
-      ctx.fillStyle = '#0f172a';
-      ctx.fillText('fone', ux + uW, py);
-    }
   });
   ctx.direction = 'rtl';
 
-  // Red 43 Group Oval (taller rounder proportions)
-  const grpCx = innerX + greenW / 2;
-  const grpCy = y + 36;
-  ctx.fillStyle = '#dc2626';
-  ctx.beginPath();
-  ctx.ellipse(grpCx, grpCy, greenW / 2 - 4, 36, 0, 0, Math.PI * 2);
-  ctx.fill();
+  // Paired Equal-Height Double-Bordered Rounded Rectangle Stickers (Red 43 Group Top + Green 24hr Service Bottom)
+  const drawDoubleSticker = (
+    sx: number,
+    sy: number,
+    sw: number,
+    sh: number,
+    bgColor: string
+  ) => {
+    ctx.save();
+    ctx.strokeStyle = bgColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(sx + 1.5, sy + 1.5, sw - 3, sh - 3, 14);
+    ctx.stroke();
 
+    ctx.fillStyle = bgColor;
+    ctx.beginPath();
+    ctx.roundRect(sx + 5, sy + 5, sw - 10, sh - 10, 10);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(sx + 5.5, sy + 5.5, sw - 11, sh - 11, 10);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const stickerH = 111;
+  const stickerGap = 10;
+  const badgeCx = innerX + badgeColW / 2;
+
+  // Top Sticker: 43 گروپ قلندر پاک زندہ باد (Red)
+  drawDoubleSticker(innerX, y, badgeColW, stickerH, '#dc2626');
   const groupText = (st.groupBadgeUrdu || '').trim();
   const groupParts = groupText.startsWith('43 گروپ')
     ? ['43 گروپ', groupText.slice('43 گروپ'.length).trim()]
@@ -599,47 +592,34 @@ export async function generateBiltyPdfBlob(
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   if (groupParts.length === 2) {
-    ctx.font = getNastaliqFont(700, 16);
-    ctx.fillText(groupParts[0], grpCx, grpCy - 13);
-    ctx.font = getNastaliqFont(700, 15);
-    ctx.fillText(fitText(ctx, groupParts[1], greenW - 36), grpCx, grpCy + 13);
+    ctx.font = getNastaliqFont(700, 19);
+    ctx.fillText(groupParts[0], badgeCx, y + stickerH / 2 - 18);
+    ctx.font = getNastaliqFont(700, 17.5);
+    ctx.fillText(
+      fitText(ctx, groupParts[1], badgeColW - 28),
+      badgeCx,
+      y + stickerH / 2 + 18
+    );
   } else {
-    ctx.font = getNastaliqFont(700, 16);
-    ctx.fillText(fitText(ctx, groupText, greenW - 30), grpCx, grpCy);
+    ctx.font = getNastaliqFont(700, 18.5);
+    ctx.fillText(
+      fitText(ctx, groupText, badgeColW - 28),
+      badgeCx,
+      y + stickerH / 2
+    );
   }
 
-  // Green Secondary Box (with clear gap between اصغر مغل and phones)
-  ctx.fillStyle = '#dcfce7';
-  ctx.fillRect(innerX, y + 78, greenW, 154);
-  ctx.strokeStyle = '#15803d';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(innerX, y + 78, greenW, 154);
-
-  ctx.font = getNastaliqFont(700, 22);
+  // Bottom Sticker: 24 گھنٹے سروس (Green, equal height)
+  const sy2 = y + stickerH + stickerGap;
+  drawDoubleSticker(innerX, sy2, badgeColW, stickerH, '#0f7a38');
+  ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
-  ctx.save();
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 4;
-  ctx.lineJoin = 'round';
-  ctx.strokeText(fitText(ctx, st.secondaryContactTitle, greenW - 18), grpCx, y + 101);
-  ctx.restore();
-  ctx.fillStyle = '#dc2626';
-  ctx.fillText(fitText(ctx, st.secondaryContactTitle, greenW - 18), grpCx, y + 101);
+  ctx.font = getCleanDataFont(700, 28);
+  ctx.fillText('24', badgeCx, sy2 + stickerH / 2 - 17);
+  ctx.font = getNastaliqFont(700, 19);
+  ctx.fillText('گھنٹے سروس', badgeCx, sy2 + stickerH / 2 + 19);
 
-  ctx.fillStyle = '#dc2626';
-  ctx.font = getCondensedFont(700, 30);
-  ctx.direction = 'ltr';
-  st.secondaryContactPhones.slice(0, 2).forEach((ph, idx) => {
-    ctx.save();
-    ctx.translate(grpCx, y + 154 + idx * 42);
-    ctx.scale(1.05, 1);
-    ctx.textAlign = 'center';
-    ctx.fillText(ph, 0, 0);
-    ctx.restore();
-  });
-  ctx.direction = 'rtl';
-
-  y += 256;
+  y += 252;
 
   // ── COMPACT PHYSICAL-PAD METADATA LAYOUT ──
   const drawFieldLine = (
@@ -745,7 +725,7 @@ export async function generateBiltyPdfBlob(
     innerX + halfMetaW,
     halfMetaW,
     y,
-    'لینے والے کا نام اور موبائل نمبر:',
+    'وصول کرنے والے کا نام اور موبائل نمبر:',
     [bilty.receiverName, bilty.receiverPhone].filter(Boolean).join(' · ')
   );
 
@@ -781,8 +761,8 @@ export async function generateBiltyPdfBlob(
   ];
 
   const headerH = 54;
-  const footerReserve = 228;
-  const bodyH = H - M - footerReserve - y - headerH - 12;
+  const footerReserve = 264;
+  const bodyH = H - M - footerReserve - y - headerH - 10;
 
   // Green header fill + outer table border
   ctx.fillStyle = '#0f7a38';
@@ -881,50 +861,49 @@ export async function generateBiltyPdfBlob(
   ctx.textAlign = 'left';
   ctx.fillText('دستخط منیجر _________', tafseelCellRight - tafseelCellW + 14, mottoY);
 
-  y += headerH + bodyH + 12;
+  y += headerH + bodyH + 10;
 
-  // ── DENSE BOTTOM FOOTER STRIP: TERMS (Right) + PATRON (Left) ──
+  // ── EXPANDED BOTTOM FOOTER STRIP: TOP-LEFT شرائط + 7 BOLD SINGLE-LINE TERMS (Right) + PATRON (Left) ──
   const footerH = H - M - y;
   const patronW = 450;
   const termsW = innerW - patronW - 16;
   const termsX = innerX + patronW + 16;
 
-  // Yellow Terms Box (no vertical divider strip; tilted corner "شرائط:" label)
+  // Yellow Terms Box expanded to lower edge
   ctx.fillStyle = '#fef9c3';
   ctx.fillRect(termsX, y, termsW, footerH);
   ctx.strokeStyle = '#d97706';
   ctx.lineWidth = 2;
   ctx.strokeRect(termsX, y, termsW, footerH);
 
-  ctx.save();
-  ctx.translate(termsX + termsW - 30, y + footerH - 22);
-  ctx.rotate(-0.2);
+  // Top-left "شرائط:" label
   ctx.fillStyle = '#dc2626';
-  ctx.font = getNastaliqFont(700, 20);
-  ctx.textAlign = 'center';
-  ctx.fillText('شرائط:', 0, 0);
-  ctx.restore();
+  ctx.font = getNastaliqFont(700, 19);
+  ctx.textAlign = 'left';
+  ctx.fillText('شرائط:', termsX + 14, y + 24);
 
-  const termsContentRight = termsX + termsW - 58;
-  const fullTermsW = termsW - 76;
+  // 7 Bold Clauses strictly 1 numbered sentence per line
+  const termsContentRight = termsX + termsW - 14;
+  const maxClauseW = termsW - 92;
+  const clauseCount = Math.max(1, st.termsUrdu.length);
+  const lineStep = (footerH - 26) / clauseCount;
 
   ctx.fillStyle = '#7f1d1d';
-  ctx.font = getNastaliqFont(400, 15.5);
   ctx.textAlign = 'right';
 
-  const allTermsText = st.termsUrdu.join('   ');
-  const wrappedTerms = wrapAllTextLines(ctx, allTermsText, fullTermsW);
-  const maxTermLines = Math.max(wrappedTerms.length, 1);
-  const lineStep = Math.min(34, Math.max(25, Math.floor((footerH - 26) / maxTermLines)));
+  st.termsUrdu.forEach((clause, idx) => {
+    const ty = y + 23 + idx * lineStep;
+    let clauseSize = 14.5;
+    ctx.font = getNastaliqFont(700, clauseSize);
+    const measuredW = ctx.measureText(clause).width;
+    if (measuredW > maxClauseW) {
+      clauseSize = Math.max(10.5, clauseSize * (maxClauseW / measuredW));
+      ctx.font = getNastaliqFont(700, Number(clauseSize.toFixed(1)));
+    }
+    ctx.fillText(clause, termsContentRight, ty);
+  });
 
-  let ty = y + 26;
-  for (const line of wrappedTerms) {
-    if (ty > y + footerH - 12) break;
-    ctx.fillText(line, termsContentRight, ty);
-    ty += lineStep;
-  }
-
-  // Patron Box (Left)
+  // Patron Box (Left) expanded flush to bottom edge
   ctx.fillStyle = '#fef3c7';
   ctx.fillRect(innerX, y, patronW, footerH);
   ctx.strokeStyle = '#475569';
@@ -933,37 +912,37 @@ export async function generateBiltyPdfBlob(
 
   const pCenter = innerX + patronW / 2;
   ctx.fillStyle = '#1e293b';
-  ctx.fillRect(pCenter - 115, y + 10, 230, 30);
+  ctx.fillRect(pCenter - 115, y + 14, 230, 32);
   ctx.fillStyle = '#ffffff';
-  ctx.font = getNastaliqFont(700, 15);
+  ctx.font = getNastaliqFont(700, 15.5);
   ctx.textAlign = 'center';
-  ctx.fillText(st.patronLabelUrdu, pCenter, y + 25);
+  ctx.fillText(st.patronLabelUrdu, pCenter, y + 30);
 
-  ctx.font = getNastaliqFont(700, 29);
+  ctx.font = getNastaliqFont(700, 30);
   ctx.save();
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 4;
   ctx.lineJoin = 'round';
-  ctx.strokeText(st.patronNameUrdu, pCenter, y + 70);
+  ctx.strokeText(st.patronNameUrdu, pCenter, y + 82);
   ctx.restore();
   ctx.fillStyle = '#dc2626';
-  ctx.fillText(st.patronNameUrdu, pCenter, y + 70);
+  ctx.fillText(st.patronNameUrdu, pCenter, y + 82);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = getNastaliqFont(700, 15);
-  ctx.fillText(fitText(ctx, st.patronDesignationUrdu, patronW - 20), pCenter, y + 112);
+  ctx.font = getNastaliqFont(700, 15.5);
+  ctx.fillText(fitText(ctx, st.patronDesignationUrdu, patronW - 20), pCenter, y + 130);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = getCleanDataFont(700, 25);
+  ctx.font = getCleanDataFont(700, 26);
   ctx.direction = 'ltr';
-  ctx.fillText(st.patronPhone, pCenter, y + 148);
+  ctx.fillText(st.patronPhone, pCenter, y + 174);
   ctx.direction = 'rtl';
 
   ctx.fillStyle = '#334155';
-  ctx.font = getNastaliqFont(600, 13);
+  ctx.font = getNastaliqFont(600, 13.5);
   const noteLines = wrapAllTextLines(ctx, st.patronNoteUrdu, patronW - 24);
   noteLines.slice(0, 2).forEach((nl, nIdx) => {
-    ctx.fillText(nl, pCenter, y + 182 + nIdx * 24);
+    ctx.fillText(nl, pCenter, y + 216 + nIdx * 24);
   });
 
   return canvasesToPdfBlob([canvas], 'landscape', 'NONE');

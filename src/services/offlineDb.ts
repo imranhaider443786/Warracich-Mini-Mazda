@@ -90,6 +90,12 @@ export async function loadLedgerFromIndexedDb(): Promise<LedgerDatabase> {
             savedSettings.addaNameUrdu.trim() === 'وڑائچ گڈز سمندری'
               ? DEFAULT_SETTINGS.addaNameUrdu
               : savedSettings.addaNameUrdu;
+          const migratedBrandSubtitle =
+            !savedStationery?.brandSubtitleUrdu ||
+            savedStationery.brandSubtitleUrdu.trim() ===
+              'گڈز ٹرانسپورٹ کمپنی اوکاڑہ بائی پاس 466 روڈ سمندری'
+              ? DEFAULT_BILTY_STATIONERY.brandSubtitleUrdu
+              : savedStationery.brandSubtitleUrdu;
 
           resolve({
             drivers: Array.isArray(val.drivers) ? val.drivers.map(normalizeDriver) : [],
@@ -103,6 +109,7 @@ export async function loadLedgerFromIndexedDb(): Promise<LedgerDatabase> {
                 ...DEFAULT_BILTY_STATIONERY,
                 ...(savedStationery || {}),
                 brandTitleUrdu: migratedBrandTitle,
+                brandSubtitleUrdu: migratedBrandSubtitle,
               },
             },
             syncMeta: {

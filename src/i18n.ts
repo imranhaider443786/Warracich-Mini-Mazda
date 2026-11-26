@@ -34,7 +34,7 @@ export const DEFAULT_BILTY_STATIONERY = {
   topSloganUrdu: 'جیوے 786 · رجسٹرڈ',
   serviceBadgeUrdu: '24 گھنٹے سروس',
   brandTitleUrdu: 'وڑائچ منی مزدا گڈز',
-  brandSubtitleUrdu: 'گڈز ٹرانسپورٹ کمپنی اوکاڑہ بائی پاس 466 روڈ سمندری',
+  brandSubtitleUrdu: 'ٹرانسپورٹ کمپنی اوکاڑہ بائی پاس 466 روڈ سمندری',
   groupBadgeUrdu: '43 گروپ قلندر پاک زندہ باد',
   primaryContactTitle: 'عمران حیدر وڑائچ سمندری والے',
   primaryContactPhones: [

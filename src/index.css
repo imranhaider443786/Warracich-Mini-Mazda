@@ -31,10 +31,10 @@
 }
 
 .bilty-outline-back-lg {
-  color: #ffffff;
-  -webkit-text-stroke: 7px #ffffff;
+  color: #fde047;
+  -webkit-text-stroke: 7px #fde047;
   paint-order: stroke fill;
-  text-shadow: 3px 3px 0 #0f172a, 1.5px 1.5px 0 #0f172a;
+  text-shadow: 3.5px 3.5px 0 #0f172a, 1.5px 1.5px 0 #0f172a;
 }
 
 .bilty-outline-back-sm {
