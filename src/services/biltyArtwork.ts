@@ -40,6 +40,7 @@ export const TRUCK_WATERMARK_URL = truckWatermarkAsset;
 
 const imageCache = new Map<string, HTMLImageElement>();
 const knockoutCache = new Map<string, HTMLCanvasElement>();
+const knockoutDataUrlCache = new Map<string, string>();
 
 export function loadImageAsset(src: string): Promise<HTMLImageElement> {
   const cached = imageCache.get(src);
@@ -59,8 +60,8 @@ export function loadImageAsset(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Converts pure white background pixels of the halftone truck graphic into
- * transparent alpha so table grid dividers show cleanly underneath.
+ * Converts white/near-white background pixels of the halftone truck graphic into
+ * transparent alpha so table grid dividers show cleanly underneath without any box edge.
  */
 export async function loadHalftoneTruckCanvas(
   src: string
@@ -81,11 +82,10 @@ export async function loadHalftoneTruckCanvas(
 
   for (let i = 0; i < data.length; i += 4) {
     const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
-    if (lum >= 240) {
+    if (lum >= 232) {
       data[i + 3] = 0;
     } else {
-      // Smooth anti-aliased edge transparency for light gray dots
-      const alpha = Math.min(255, Math.max(0, Math.round(((245 - lum) / 200) * 255)));
+      const alpha = Math.min(255, Math.max(0, Math.round(((232 - lum) / 190) * 255)));
       data[i] = 28;
       data[i + 1] = 35;
       data[i + 2] = 48;
@@ -96,4 +96,13 @@ export async function loadHalftoneTruckCanvas(
   octx.putImageData(imgData, 0, 0);
   knockoutCache.set(src, off);
   return off;
+}
+
+export async function loadHalftoneTruckDataUrl(src: string): Promise<string> {
+  const cached = knockoutDataUrlCache.get(src);
+  if (cached) return cached;
+  const canvas = await loadHalftoneTruckCanvas(src);
+  const url = canvas.toDataURL('image/png');
+  knockoutDataUrlCache.set(src, url);
+  return url;
 }

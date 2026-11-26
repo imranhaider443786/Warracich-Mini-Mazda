@@ -30,11 +30,18 @@
   font-family: var(--font-condensed);
 }
 
-.bilty-masthead-red {
-  color: #dc2626;
-  -webkit-text-stroke: 3.5px #ffffff;
+.bilty-outline-back-lg {
+  color: #ffffff;
+  -webkit-text-stroke: 7px #ffffff;
   paint-order: stroke fill;
-  text-shadow: 2.5px 2.5px 0 #0f172a, 1px 1px 0 #0f172a;
+  text-shadow: 3px 3px 0 #0f172a, 1.5px 1.5px 0 #0f172a;
+}
+
+.bilty-outline-back-sm {
+  color: #ffffff;
+  -webkit-text-stroke: 4px #ffffff;
+  paint-order: stroke fill;
+  text-shadow: 1.5px 1.5px 0 #0f172a;
 }
 
 .bilty-masthead-outline {
@@ -42,13 +49,6 @@
   -webkit-text-stroke: 2.5px #334155;
   paint-order: stroke fill;
   text-shadow: 2px 2px 0 #0f172a;
-}
-
-.bilty-calligraphy-red-outline {
-  color: #dc2626;
-  -webkit-text-stroke: 2px #ffffff;
-  paint-order: stroke fill;
-  text-shadow: 1.5px 1.5px 0 #0f172a;
 }
 
 /* Official Google Sign-In Button styling */
@@ -106,11 +106,11 @@
   min-width: 18px;
 }
 
-/* Print stylesheet: lock full-bleed A4 landscape sheet onto strictly 1 page */
+/* Print stylesheet: fill full A4 landscape page edge-to-edge on strictly 1 page */
 @media print {
   @page {
     size: A4 landscape;
-    margin: 3mm;
+    margin: 2mm;
   }
 
   html,
@@ -128,8 +128,8 @@
 
   html:has(.print-sheet-scaler),
   body:has(.print-sheet-scaler) {
-    height: 200mm !important;
-    max-height: 200mm !important;
+    height: 205mm !important;
+    max-height: 205mm !important;
     overflow: hidden !important;
   }
 
@@ -150,16 +150,16 @@
   }
 
   .print-main-reset:has(.print-sheet-scaler) {
-    height: 200mm !important;
-    max-height: 200mm !important;
+    height: 205mm !important;
+    max-height: 205mm !important;
     overflow: hidden !important;
   }
 
   .print-sheet-scaler {
     position: relative !important;
     width: 100% !important;
-    height: 200mm !important;
-    max-height: 200mm !important;
+    height: 205mm !important;
+    max-height: 205mm !important;
     overflow: hidden !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -178,7 +178,7 @@
     width: 1123px !important;
     height: 794px !important;
     max-width: none !important;
-    transform: translateX(-50%) scale(0.945) !important;
+    transform: translateX(-50%) scale(0.972) !important;
     transform-origin: top center !important;
     border: none !important;
     box-shadow: none !important;
