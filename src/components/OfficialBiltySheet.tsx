@@ -10,8 +10,8 @@ interface OfficialBiltySheetProps {
   settings: AddaSettings;
 }
 
-const SHEET_WIDTH = 1123; // 297mm @ 96 DPI (A4 Landscape)
-const SHEET_HEIGHT = 794; // 210mm @ 96 DPI (A4 Landscape)
+const SHEET_WIDTH = 1123; // 297mm @ 96 DPI (A4 Landscape width)
+const SHEET_HEIGHT = 626; // Compact proportional Bilty slip height inside A4 Landscape
 
 const DualOutlineUrdu: React.FC<{
   text: string;
@@ -42,8 +42,14 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
   const scalerRef = useRef<HTMLDivElement | null>(null);
   const mastheadBoxRef = useRef<HTMLDivElement | null>(null);
   const mastheadTextRef = useRef<HTMLDivElement | null>(null);
+  const imranBoxRef = useRef<HTMLDivElement | null>(null);
+  const imranTitleRef = useRef<HTMLDivElement | null>(null);
+  const imranNumRef = useRef<HTMLSpanElement | null>(null);
+
   const [scale, setScale] = useState(1);
   const [mastheadScaleX, setMastheadScaleX] = useState(1);
+  const [imranTitleScaleX, setImranTitleScaleX] = useState(1);
+  const [imranNumScaleX, setImranNumScaleX] = useState(1.15);
   const [truckUrl, setTruckUrl] = useState<string>(TRUCK_WATERMARK_URL);
 
   const st = settings.biltyStationery;
@@ -84,30 +90,46 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
   useEffect(() => {
     let cancelled = false;
 
-    const measureMasthead = () => {
+    const measureFits = () => {
       if (cancelled) return;
+
       const box = mastheadBoxRef.current;
       const txt = mastheadTextRef.current;
-      if (!box || !txt) return;
-      const boxW = box.clientWidth;
-      const txtW = txt.scrollWidth;
-      if (boxW > 0 && txtW > 0) {
-        const targetW = boxW * 0.96;
-        const nextScale = Math.max(0.75, Math.min(1.58, targetW / txtW));
-        setMastheadScaleX(nextScale);
+      if (box && txt && box.clientWidth > 0 && txt.scrollWidth > 0) {
+        const targetW = box.clientWidth * 0.97;
+        setMastheadScaleX(
+          Math.max(0.8, Math.min(1.7, targetW / txt.scrollWidth))
+        );
+      }
+
+      const iBox = imranBoxRef.current;
+      const iTitle = imranTitleRef.current;
+      const iNum = imranNumRef.current;
+      if (iBox && iBox.clientWidth > 20) {
+        const usableW = iBox.clientWidth - 10;
+        if (iTitle && iTitle.scrollWidth > 0) {
+          setImranTitleScaleX(
+            Math.max(0.88, Math.min(1.42, usableW / iTitle.scrollWidth))
+          );
+        }
+        if (iNum && iNum.scrollWidth > 0) {
+          setImranNumScaleX(
+            Math.max(0.95, Math.min(1.52, usableW / iNum.scrollWidth))
+          );
+        }
       }
     };
 
-    measureMasthead();
+    measureFits();
     if (typeof document !== 'undefined' && document.fonts) {
-      document.fonts.ready.then(measureMasthead);
+      document.fonts.ready.then(measureFits);
     }
-    const raf = requestAnimationFrame(measureMasthead);
+    const raf = requestAnimationFrame(measureFits);
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, [st.brandTitleUrdu]);
+  }, [st.brandTitleUrdu, st.primaryContactTitle, st.primaryContactPhones]);
 
   const totalFreight = Number(bilty.freightAmount) || 0;
   const advanceVal = Number(bilty.advancePaid) || 0;
@@ -138,6 +160,8 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
   const isDefaultSlogan =
     sloganClean.includes('جیوے') && sloganClean.includes('786');
 
+  const termsParagraph = st.termsUrdu.join('  ');
+
   return (
     <div
       ref={scalerRef}
@@ -155,62 +179,58 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
           transformOrigin: 'top center',
         }}
       >
-        {/* Top Stationery Banner */}
-        <div className="grid grid-cols-12 gap-3 pb-0.5">
-          {/* Right Side: Centered 786, Small جیوے + Elongated Crimson/Gold Headline + Small رجسٹرڈ, Deduplicated Subtitle */}
+        {/* Top Stationery Banner (Compact Height) */}
+        <div className="grid grid-cols-12 items-stretch gap-2.5 pb-0.5">
+          {/* Right Side: Top Row (جیوے above وڑائچ + 786 + رجسٹرڈ above گڈز), Full-Width Headline, Deduplicated Subtitle */}
           <div className="col-span-7 flex flex-col justify-between">
-            {/* Top Row: Centered 786 */}
-            <div className="flex items-center justify-center pt-0.5">
+            {/* Top Row: جیوے directly above right start of وڑائچ, centered 786, رجسٹرڈ directly above left end of گڈز */}
+            <div className="flex items-center justify-between px-0.5">
+              <span className="font-nastaliq text-[15.5px] font-bold leading-[1.45] text-slate-900">
+                جیوے
+              </span>
               {isDefaultSlogan || sloganClean.includes('786') ? (
                 <span
-                  className="font-sans text-[22px] font-black leading-none tracking-wide text-slate-900 tabular-nums"
+                  className="font-sans text-[19px] font-black leading-none tracking-wide text-slate-900 tabular-nums"
                   dir="ltr"
                 >
                   786
                 </span>
               ) : (
-                <span className="font-nastaliq text-sm font-bold leading-[1.6] text-slate-900">
+                <span className="font-nastaliq text-xs font-bold leading-[1.45] text-slate-900">
                   {st.topSloganUrdu}
                 </span>
               )}
-            </div>
-
-            {/* Main Masthead Row: Small جیوے (right) + Elongated Crimson/Gold Business Name + Small رجسٹرڈ (left) */}
-            <div className="mt-0.5 mb-2 flex items-baseline justify-between gap-2.5">
-              <span className="font-nastaliq shrink-0 text-[18px] font-bold leading-[1.6] text-slate-900">
-                جیوے
-              </span>
-
-              <div
-                ref={mastheadBoxRef}
-                className="flex min-w-0 flex-1 items-center justify-center overflow-visible"
-              >
-                <div
-                  ref={mastheadTextRef}
-                  className="inline-flex origin-center items-baseline justify-center gap-2 whitespace-nowrap"
-                  style={{
-                    transform: `rotate(-0.6deg) scaleX(${mastheadScaleX})`,
-                  }}
-                >
-                  <h2 className="font-nastaliq font-bold leading-[1.42]">
-                    <DualOutlineUrdu
-                      text={mainMasthead}
-                      sizeClass="text-[36px]"
-                      backClass="bilty-outline-back-lg"
-                      frontColorClass="text-[#991b1b]"
-                    />
-                  </h2>
-                  {citySuffix && (
-                    <span className="bilty-masthead-outline font-nastaliq text-[28px] font-bold leading-[1.42]">
-                      {citySuffix}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <span className="font-nastaliq shrink-0 text-[18px] font-bold leading-[1.6] text-slate-900">
+              <span className="font-nastaliq text-[15.5px] font-bold leading-[1.45] text-slate-900">
                 رجسٹرڈ
               </span>
+            </div>
+
+            {/* Full-Width Standout Business Name: Deep Crimson + Thick Gold-Yellow Outline + 3D Shadow */}
+            <div
+              ref={mastheadBoxRef}
+              className="my-0.5 flex w-full items-center justify-center overflow-visible"
+            >
+              <div
+                ref={mastheadTextRef}
+                className="inline-flex origin-center items-baseline justify-center gap-2 whitespace-nowrap"
+                style={{
+                  transform: `rotate(-0.45deg) scaleX(${mastheadScaleX})`,
+                }}
+              >
+                <h2 className="font-nastaliq font-bold leading-[1.35]">
+                  <DualOutlineUrdu
+                    text={mainMasthead}
+                    sizeClass="text-[35px]"
+                    backClass="bilty-outline-back-lg"
+                    frontColorClass="text-[#991b1b]"
+                  />
+                </h2>
+                {citySuffix && (
+                  <span className="bilty-masthead-outline font-nastaliq text-[27px] font-bold leading-[1.35]">
+                    {citySuffix}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Triple-Rule Deduplicated Subtitle */}
@@ -220,7 +240,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
                 <span className="h-[1px] w-full bg-slate-700" />
                 <span className="h-[1.5px] w-full bg-slate-900" />
               </div>
-              <div className="font-nastaliq shrink-0 text-center text-[12px] font-bold leading-[1.8] text-slate-900">
+              <div className="font-nastaliq shrink-0 text-center text-[11.5px] font-bold leading-[1.7] text-slate-900">
                 {subtitleClean}
               </div>
               <div className="flex flex-1 flex-col gap-[2px]">
@@ -231,22 +251,35 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
             </div>
           </div>
 
-          {/* Left Side: Fitted Yellow Imran Haider Card (No WhatsApp/Ufone) + Paired Double-Bordered Red/Green Stickers */}
+          {/* Left Side: Edge-Fitted Yellow Imran Haider Box + Shorter Compact Paired Stickers */}
           <div className="col-span-5 grid grid-cols-12 gap-2">
-            <div className="col-span-7 flex flex-col justify-between border-[1.5px] border-[#d97706] bg-[#fef3c7] px-2 py-1 text-center">
-              <div className="font-nastaliq pb-0.5 text-[12.5px] font-bold leading-[1.75] text-[#dc2626]">
-                {st.primaryContactTitle}
+            <div
+              ref={imranBoxRef}
+              className="col-span-8 flex h-[146px] flex-col justify-between overflow-hidden border-[1.5px] border-[#d97706] bg-[#fef3c7] px-1 py-1 text-center"
+            >
+              <div className="flex items-center justify-center overflow-hidden">
+                <div
+                  ref={imranTitleRef}
+                  className="font-nastaliq inline-block origin-center whitespace-nowrap text-[13px] font-bold leading-[1.6] text-[#dc2626]"
+                  style={{ transform: `scaleX(${imranTitleScaleX})` }}
+                >
+                  {st.primaryContactTitle}
+                </div>
               </div>
               <div
-                className="flex flex-1 flex-col justify-evenly font-condensed text-[26px] font-bold leading-[1.02] tracking-tight text-[#dc2626] tabular-nums"
+                className="flex flex-1 flex-col justify-between pt-0.5 font-condensed text-[25px] font-bold leading-[0.96] tracking-tight text-[#dc2626] tabular-nums"
                 dir="ltr"
               >
                 {st.primaryContactPhones.map((ph, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center overflow-hidden"
                   >
-                    <span className="inline-block origin-center scale-x-110">
+                    <span
+                      ref={idx === 0 ? imranNumRef : undefined}
+                      className="inline-block origin-center whitespace-nowrap"
+                      style={{ transform: `scaleX(${imranNumScaleX})` }}
+                    >
                       {ph}
                     </span>
                   </div>
@@ -254,15 +287,15 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
               </div>
             </div>
 
-            <div className="col-span-5 flex flex-col justify-between gap-1.5">
-              {/* Top Sticker: 43 Group (Double-Bordered Red Rounded Rectangle) */}
-              <div className="flex flex-1 rounded-lg border-2 border-[#dc2626] p-[2px]">
-                <div className="flex w-full flex-col items-center justify-center rounded-[5px] border border-white/95 bg-[#dc2626] px-2 py-1 text-center text-white">
+            <div className="col-span-4 flex h-[146px] flex-col justify-between gap-1">
+              {/* Top Sticker: Shorter 43 Group (Double-Bordered Red Rounded Rectangle) */}
+              <div className="flex flex-1 rounded-md border-2 border-[#dc2626] p-[1.5px]">
+                <div className="flex w-full flex-col items-center justify-center rounded-[4px] border border-white/95 bg-[#dc2626] px-1 py-0.5 text-center text-white">
                   {groupParts.map((part, idx) => (
                     <span
                       key={idx}
-                      className={`font-nastaliq font-bold leading-[1.65] ${
-                        idx === 0 ? 'text-[12px]' : 'text-[11px]'
+                      className={`font-nastaliq font-bold leading-[1.48] ${
+                        idx === 0 ? 'text-[11px]' : 'text-[9.8px]'
                       }`}
                     >
                       {part}
@@ -271,13 +304,13 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
                 </div>
               </div>
 
-              {/* Bottom Sticker: 24 Hours Service (Equal-Height Double-Bordered Green Rounded Rectangle) */}
-              <div className="flex flex-1 rounded-lg border-2 border-[#0f7a38] p-[2px]">
-                <div className="flex w-full flex-col items-center justify-center rounded-[5px] border border-white/95 bg-[#0f7a38] px-2 py-1 text-center text-white">
-                  <span className="font-sans text-[18px] font-black leading-none tracking-wide">
+              {/* Bottom Sticker: Shorter 24 Hours Service (Equal-Height Double-Bordered Green Rounded Rectangle) */}
+              <div className="flex flex-1 rounded-md border-2 border-[#0f7a38] p-[1.5px]">
+                <div className="flex w-full flex-col items-center justify-center rounded-[4px] border border-white/95 bg-[#0f7a38] px-1 py-0.5 text-center text-white">
+                  <span className="font-sans text-[16px] font-black leading-none tracking-wide">
                     24
                   </span>
-                  <span className="font-nastaliq mt-0.5 text-[11.5px] font-bold leading-[1.55]">
+                  <span className="font-nastaliq mt-0.5 text-[10.5px] font-bold leading-[1.45]">
                     گھنٹے سروس
                   </span>
                 </div>
@@ -286,13 +319,13 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
           </div>
         </div>
 
-        {/* Compact Physical-Pad Metadata Grid (Cream 2-Line Driver Box + Clean Spacing) */}
+        {/* Compact Physical-Pad Metadata Grid */}
         <div className="mt-1 space-y-1 text-xs text-slate-900">
           <div className="grid grid-cols-12 items-start gap-3">
-            {/* Right Zone: Bilty No (no colon, no underline) + Az / Ta */}
-            <div className="col-span-6 space-y-1.5 pt-0.5">
+            {/* Right Zone: Bilty No + Az / Ta */}
+            <div className="col-span-6 space-y-1 pt-0.5">
               <div className="flex items-baseline gap-3">
-                <span className="font-nastaliq shrink-0 text-[12px] font-bold leading-[1.75] text-slate-800">
+                <span className="font-nastaliq shrink-0 text-[12px] font-bold leading-[1.65] text-slate-800">
                   بلٹی نمبر
                 </span>
                 <span
@@ -304,7 +337,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-baseline gap-1.5 border-b border-slate-700 pb-0.5">
-                  <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.75] text-[#dc2626]">
+                  <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.65] text-[#dc2626]">
                     از:
                   </span>
                   <span className="truncate font-sans text-[12.5px] font-bold text-slate-900">
@@ -312,7 +345,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5 border-b border-slate-700 pb-0.5">
-                  <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.75] text-[#dc2626]">
+                  <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.65] text-[#dc2626]">
                     تا:
                   </span>
                   <span className="truncate font-sans text-[12.5px] font-bold text-slate-900">
@@ -323,10 +356,10 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
             </div>
 
             {/* Left Zone: Date + Gari No on top, Cream Double-Bordered 2-Line Driver Box below */}
-            <div className="col-span-6 space-y-1.5">
+            <div className="col-span-6 space-y-1">
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-baseline gap-1.5 border-b border-slate-700 pb-0.5">
-                  <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.75] text-[#dc2626]">
+                  <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.65] text-[#dc2626]">
                     تاریخ:
                   </span>
                   <span
@@ -337,7 +370,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5 border-b border-slate-700 pb-0.5">
-                  <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.75] text-[#dc2626]">
+                  <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.65] text-[#dc2626]">
                     گاڑی نمبر:
                   </span>
                   <span
@@ -350,39 +383,39 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
               </div>
 
               <div className="border-[1.5px] border-[#15803d] p-[1.5px]">
-                <div className="flex items-center gap-2.5 border border-[#15803d] bg-[#fef9c3] px-2.5 py-1">
-                  <div className="font-nastaliq shrink-0 text-right text-[9.5px] font-bold leading-[1.45] text-[#dc2626]">
+                <div className="flex items-center gap-2.5 border border-[#15803d] bg-[#fef9c3] px-2.5 py-0.5">
+                  <div className="font-nastaliq shrink-0 text-right text-[9.5px] font-bold leading-[1.4] text-[#dc2626]">
                     <div>ڈرائیور کا نام</div>
                     <div>اور موبائل نمبر:</div>
                   </div>
-                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-                    <div className="min-h-[16px] truncate border-b border-slate-700 font-sans text-[12px] font-bold leading-tight text-slate-900">
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+                    <div className="min-h-[15px] truncate border-b border-slate-700 font-sans text-[12px] font-bold leading-tight text-slate-900">
                       {[bilty.driverName, bilty.driverPhone]
                         .filter(Boolean)
                         .join(' · ')}
                     </div>
-                    <div className="h-[10px] border-b border-slate-700" />
+                    <div className="h-[9px] border-b border-slate-700" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Side-by-Side Sender + Receiver directly above table header */}
+          {/* Side-by-Side Sender (بھیجنے والے:) + Receiver (وصول کرنے والے:) with IDENTICAL Blank Line Lengths */}
           <div className="grid grid-cols-12 gap-3 pt-0.5">
-            <div className="col-span-6 flex items-baseline gap-1.5 border-b border-slate-700 pb-0.5">
-              <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.75] text-[#dc2626]">
-                بھیجنے والے کا نام و موبائل نمبر:
+            <div className="col-span-6 flex items-baseline gap-2">
+              <span className="font-nastaliq w-[86px] shrink-0 text-right text-[11.5px] font-bold leading-[1.65] text-[#dc2626]">
+                بھیجنے والے:
               </span>
-              <span className="truncate font-sans text-[12.5px] font-bold text-slate-900">
+              <span className="min-h-[19px] min-w-0 flex-1 truncate border-b border-slate-700 pb-0.5 font-sans text-[12.5px] font-bold text-slate-900">
                 {[bilty.senderName, bilty.senderPhone].filter(Boolean).join(' · ')}
               </span>
             </div>
-            <div className="col-span-6 flex items-baseline gap-1.5 border-b border-slate-700 pb-0.5">
-              <span className="font-nastaliq shrink-0 text-[11.5px] font-bold leading-[1.75] text-[#dc2626]">
-                وصول کرنے والے کا نام اور موبائل نمبر:
+            <div className="col-span-6 flex items-baseline gap-2">
+              <span className="font-nastaliq w-[86px] shrink-0 text-right text-[11.5px] font-bold leading-[1.65] text-[#dc2626]">
+                وصول کرنے والے:
               </span>
-              <span className="truncate font-sans text-[12.5px] font-bold text-slate-900">
+              <span className="min-h-[19px] min-w-0 flex-1 truncate border-b border-slate-700 pb-0.5 font-sans text-[12.5px] font-bold text-slate-900">
                 {[bilty.receiverName, bilty.receiverPhone]
                   .filter(Boolean)
                   .join(' · ')}
@@ -391,23 +424,23 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
           </div>
         </div>
 
-        {/* Main 6-Column Consignment Table + Transparent Halftone Truck Watermark */}
-        <div className="relative mt-1 flex-1 overflow-hidden border-[1.5px] border-slate-900">
+        {/* Shorter 6-Column Consignment / Freight Table (کرایہ والا باکس) + Transparent Halftone Truck Watermark */}
+        <div className="relative mt-1 h-[226px] overflow-hidden border-[1.5px] border-slate-900">
           {/* Alpha-transparent halftone truck watermark centered over Tafseel Maal & Wazan boundary */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute top-8 right-[41%] bottom-1 z-0 flex translate-x-1/2 items-center justify-center"
+            className="pointer-events-none absolute top-7 right-[41%] bottom-1 z-0 flex translate-x-1/2 items-center justify-center"
           >
             <img
               src={truckUrl}
               alt=""
-              className="h-[205px] w-auto object-contain opacity-[0.34] select-none"
+              className="h-[164px] w-auto object-contain opacity-[0.34] select-none"
             />
           </div>
 
           <table className="relative z-10 h-full w-full table-fixed border-collapse text-center text-sm">
             <thead>
-              <tr className="bg-[#0f7a38] font-nastaliq text-[13px] font-bold leading-[1.9] text-white">
+              <tr className="bg-[#0f7a38] font-nastaliq text-[13px] font-bold leading-[1.85] text-white">
                 <th className="w-[10%] border-e border-white/60 px-1.5 py-0.5">
                   تعداد
                 </th>
@@ -428,46 +461,46 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
             </thead>
             <tbody>
               <tr className="align-top">
-                <td className="border-e border-slate-800 px-2 pt-3 pb-4 font-sans text-sm font-bold text-slate-900">
+                <td className="border-e border-slate-800 px-2 pt-2.5 pb-3 font-sans text-sm font-bold text-slate-900">
                   {bilty.packagesCount || ''}
                 </td>
-                <td className="relative border-e border-slate-800 px-3 pt-3 pb-9 text-base font-bold text-slate-900">
+                <td className="relative border-e border-slate-800 px-3 pt-2.5 pb-8 text-base font-bold text-slate-900">
                   <div className="whitespace-pre-wrap leading-relaxed">
                     {bilty.goodsDescription || ''}
                   </div>
                   {bilty.notes && (
-                    <div className="mt-1.5 text-xs font-medium text-slate-700">
+                    <div className="mt-1 text-xs font-medium text-slate-700">
                       {bilty.notes}
                     </div>
                   )}
 
                   <div className="absolute inset-x-2 bottom-1 flex items-center justify-between gap-2 text-[10.5px] font-bold">
-                    <span className="font-nastaliq leading-[1.75] text-[#dc2626]">
+                    <span className="font-nastaliq leading-[1.7] text-[#dc2626]">
                       {mottoClean} ★
                     </span>
-                    <span className="font-nastaliq leading-[1.75] text-[#dc2626]">
+                    <span className="font-nastaliq leading-[1.7] text-[#dc2626]">
                       دستخط منیجر{' '}
                       <span className="font-sans text-slate-800">________</span>
                     </span>
                   </div>
                 </td>
-                <td className="border-e border-slate-800 px-2 pt-3 pb-4 font-sans text-sm font-bold text-slate-900">
+                <td className="border-e border-slate-800 px-2 pt-2.5 pb-3 font-sans text-sm font-bold text-slate-900">
                   {bilty.weight || ''}
                 </td>
                 <td
-                  className="border-e border-slate-800 px-2 pt-3 pb-4 font-mono text-base font-bold text-slate-900 tabular-nums"
+                  className="border-e border-slate-800 px-2 pt-2.5 pb-3 font-mono text-base font-bold text-slate-900 tabular-nums"
                   dir="ltr"
                 >
                   {totalFreight > 0 ? totalFreight.toLocaleString('en-PK') : ''}
                 </td>
                 <td
-                  className="border-e border-slate-800 px-2 pt-3 pb-4 font-mono text-base font-bold text-slate-900 tabular-nums"
+                  className="border-e border-slate-800 px-2 pt-2.5 pb-3 font-mono text-base font-bold text-slate-900 tabular-nums"
                   dir="ltr"
                 >
                   {advanceVal > 0 ? advanceVal.toLocaleString('en-PK') : ''}
                 </td>
                 <td
-                  className="px-2 pt-3 pb-4 font-mono text-xl font-extrabold text-slate-900 tabular-nums"
+                  className="px-2 pt-2.5 pb-3 font-mono text-xl font-extrabold text-slate-900 tabular-nums"
                   dir="ltr"
                 >
                   {totalFreight > 0 || payable > 0
@@ -479,45 +512,41 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
           </table>
         </div>
 
-        {/* Expanded Lower-Edge Footer: Top-Left شرائط + 7 Bold Single-Line Clauses + Expanded Patron Box */}
-        <div className="mt-1.5 grid grid-cols-12 gap-2">
-          <div className="relative col-span-9 flex flex-col justify-between border-[1.5px] border-[#d97706] bg-[#fef9c3] px-2.5 py-1.5 text-[#7f1d1d]">
-            <span className="font-nastaliq pointer-events-none absolute top-1 left-2.5 text-[11.5px] font-bold leading-[1.6] text-[#dc2626]">
+        {/* Shorter Compact Footer: Top-Right Bold شرائط + Flowing Bold Paragraph + Compact Patron Box */}
+        <div className="mt-1 grid grid-cols-12 items-stretch gap-2">
+          <div className="relative col-span-9 flex items-center border-[1.5px] border-[#d97706] bg-[#fef9c3] px-2.5 py-1.5 text-[#7f1d1d]">
+            <span className="font-nastaliq pointer-events-none absolute top-1 right-2.5 text-[11.5px] font-bold leading-[1.6] text-[#dc2626]">
               شرائط:
             </span>
-            <div className="font-nastaliq flex flex-1 flex-col justify-between pl-11 text-right text-[9.6px] font-bold leading-[1.82]">
-              {st.termsUrdu.map((clause, idx) => (
-                <div key={idx} className="whitespace-nowrap">
-                  {clause}
-                </div>
-              ))}
-            </div>
+            <p className="font-nastaliq w-full indent-11 text-justify text-[9.6px] font-bold leading-[1.78]">
+              {termsParagraph}
+            </p>
           </div>
 
-          <div className="col-span-3 flex flex-col justify-between border-[1.5px] border-slate-700 bg-[#fef3c7] px-2.5 py-2 text-center">
-            <div className="space-y-1">
-              <div className="font-nastaliq inline-block rounded-xs bg-slate-900 px-3 py-0.5 text-[10px] font-bold leading-[1.65] text-white">
+          <div className="col-span-3 flex flex-col justify-between border-[1.5px] border-slate-700 bg-[#fef3c7] px-2 py-1.5 text-center">
+            <div className="space-y-0.5">
+              <div className="font-nastaliq inline-block rounded-xs bg-slate-900 px-3 py-0.5 text-[9.5px] font-bold leading-[1.55] text-white">
                 {st.patronLabelUrdu}
               </div>
-              <div className="font-nastaliq font-bold leading-[1.75]">
+              <div className="font-nastaliq font-bold leading-[1.65]">
                 <DualOutlineUrdu
                   text={st.patronNameUrdu}
-                  sizeClass="text-[18px]"
+                  sizeClass="text-[16.5px]"
                   frontColorClass="text-[#dc2626]"
                 />
               </div>
-              <div className="font-nastaliq text-[9.8px] font-bold leading-[1.75] text-slate-900">
+              <div className="font-nastaliq text-[9.2px] font-bold leading-[1.65] text-slate-900">
                 {st.patronDesignationUrdu}
               </div>
             </div>
-            <div className="mt-1 space-y-0.5">
+            <div className="mt-0.5">
               <div
-                className="font-sans text-[16.5px] font-black tracking-wide text-slate-900 tabular-nums"
+                className="font-sans text-[15px] font-black tracking-wide text-slate-900 tabular-nums"
                 dir="ltr"
               >
                 {st.patronPhone}
               </div>
-              <div className="font-nastaliq text-[9.2px] font-semibold leading-[1.7] text-slate-800">
+              <div className="font-nastaliq text-[8.8px] font-semibold leading-[1.55] text-slate-800">
                 {st.patronNoteUrdu}
               </div>
             </div>

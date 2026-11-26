@@ -158,7 +158,7 @@
   .print-sheet-scaler {
     position: relative !important;
     width: 100% !important;
-    height: 205mm !important;
+    height: 180mm !important;
     max-height: 205mm !important;
     overflow: hidden !important;
     padding: 0 !important;
@@ -176,7 +176,7 @@
     top: 0 !important;
     left: 50% !important;
     width: 1123px !important;
-    height: 794px !important;
+    height: auto !important;
     max-width: none !important;
     transform: translateX(-50%) scale(0.972) !important;
     transform-origin: top center !important;
