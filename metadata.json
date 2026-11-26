@@ -1,0 +1,6 @@
+{
+  "name": "Adda Ledger Pro",
+  "description": "Offline-first transport adda management for daily driver arrivals, bilty generation, rooznamcha accounting, and Google Drive synchronization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
