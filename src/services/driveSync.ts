@@ -43,7 +43,16 @@ async function driveFetch(url: string, token: string, init?: RequestInit): Promi
     if (res.status === 401) {
       throw new Error('AUTH_EXPIRED');
     }
-    throw new Error(`Google Drive error (${res.status}): ${errText || res.statusText}`);
+    let message = errText || res.statusText;
+    try {
+      const parsed = JSON.parse(errText) as { error?: { message?: string } };
+      if (parsed?.error?.message) {
+        message = parsed.error.message;
+      }
+    } catch {
+      // keep raw errText
+    }
+    throw new Error(`Google Drive error (${res.status}): ${message}`);
   }
   return res;
 }

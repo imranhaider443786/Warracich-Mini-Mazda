@@ -14,6 +14,13 @@ import {
   RooznamchaEntry,
 } from '../types';
 
+import {
+  loadSvgImage,
+  PAKISTAN_FLAG_DATA_URL,
+  TRUCK_WATERMARK_DATA_URL,
+  WHATSAPP_ICON_DATA_URL,
+} from './biltyArtwork';
+
 const PAGE_W = 1240; // High-DPI A4 portrait canvas width
 const PAGE_H = 1754; // High-DPI A4 portrait canvas height
 const MARGIN = 64;
@@ -24,6 +31,18 @@ function getFont(lang: Language, weight: 400 | 600 | 700, size: number): string 
       ? '"Noto Sans Arabic", "Plus Jakarta Sans", sans-serif'
       : '"Plus Jakarta Sans", "Noto Sans Arabic", sans-serif';
   return `${weight} ${size}px ${family}`;
+}
+
+function getNastaliqFont(weight: 400 | 600 | 700, size: number): string {
+  return `${weight} ${size}px "Noto Nastaliq Urdu", "Noto Sans Arabic", serif`;
+}
+
+function getCondensedFont(weight: 600 | 700, size: number): string {
+  return `${weight} ${size}px "Oswald", "IBM Plex Mono", sans-serif`;
+}
+
+function getCleanDataFont(weight: 400 | 600 | 700, size: number): string {
+  return `${weight} ${size}px "Plus Jakarta Sans", "Noto Sans Arabic", sans-serif`;
 }
 
 function getMonoFont(weight: 400 | 600 | 700, size: number): string {
@@ -275,9 +294,32 @@ export async function generateDriverRegisterPdfBlob(
   return canvasesToPdfBlob(canvases, 'portrait');
 }
 
+function wrapAllTextLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string[] {
+  const words = (text || '').split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (ctx.measureText(next).width <= maxWidth) {
+      cur = next;
+    } else {
+      if (cur) lines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
 /**
  * Generates an authentic A4 Landscape Official Urdu PDF matching Warraich Goods Samundri stationery.
- * Always renders in Urdu RTL regardless of UI language toggle.
+ * Uses Noto Nastaliq Urdu for printed stationery, Oswald for stacked phone numbers,
+ * realistic grayscale truck watermark, all 6 freight columns, and clean dark data text.
  */
 export async function generateBiltyPdfBlob(
   bilty: BiltyRecord,
@@ -285,142 +327,305 @@ export async function generateBiltyPdfBlob(
   _lang: Language
 ): Promise<Blob> {
   if (typeof document !== 'undefined' && document.fonts) {
-    await document.fonts.ready;
+    await Promise.allSettled([
+      document.fonts.load('400 18px "Noto Nastaliq Urdu"'),
+      document.fonts.load('700 24px "Noto Nastaliq Urdu"'),
+      document.fonts.load('700 72px "Noto Nastaliq Urdu"'),
+      document.fonts.load('700 32px "Oswald"'),
+      document.fonts.load('700 28px "IBM Plex Mono"'),
+      document.fonts.load('600 22px "Plus Jakarta Sans"'),
+      document.fonts.ready,
+    ]);
   }
+
+  const [flagRes, waRes, truckRes] = await Promise.allSettled([
+    loadSvgImage(PAKISTAN_FLAG_DATA_URL),
+    loadSvgImage(WHATSAPP_ICON_DATA_URL),
+    loadSvgImage(TRUCK_WATERMARK_DATA_URL),
+  ]);
+  const flagImg = flagRes.status === 'fulfilled' ? flagRes.value : null;
+  const waImg = waRes.status === 'fulfilled' ? waRes.value : null;
+  const truckImg = truckRes.status === 'fulfilled' ? truckRes.value : null;
+
   const W = 1754;
   const H = 1240;
-  const M = 56;
+  const M = 48;
   const { canvas, ctx } = createPageCanvas('ur', W, H);
   const st = settings.biltyStationery;
 
-  // Outer frame
+  // Outer stationery frame
   ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 3.5;
   ctx.strokeRect(M, M, W - M * 2, H - M * 2);
 
-  const innerX = M + 28;
-  const innerW = W - M * 2 - 56;
-  let y = M + 28;
+  const innerX = M + 24;
+  const innerW = W - M * 2 - 48; // 1610px
+  const rightEdge = innerX + innerW; // 1682px
+  let y = M + 24; // 72px
 
   // ── TOP BANNER ──
-  // Right Half: Brand Header (x: innerX + innerW/2 .. innerX + innerW)
-  const rightHalfW = innerW * 0.52;
-  const rightEdge = innerX + innerW;
-  const leftHalfW = innerW - rightHalfW - 24;
+  const rightHalfW = 885;
+  const rightZoneStart = rightEdge - rightHalfW; // 797px
+  const leftHalfW = innerW - rightHalfW - 25; // 700px
 
-  // Top slogan & 24hr badge
-  ctx.fillStyle = '#0f172a';
-  ctx.font = getFont('ur', 700, 22);
-  ctx.textAlign = 'right';
-  ctx.fillText(st.topSloganUrdu, rightEdge, y + 18);
+  // 1) Top-right slogan + Pakistan flag + registered + 24hr green oval
+  const sloganClean = (st.topSloganUrdu || '').replace(/[·•]/g, ' ').trim();
+  const isDefaultSlogan =
+    sloganClean.includes('جیوے') && sloganClean.includes('786');
 
-  // Green 24hr badge
-  const badgeW = 190;
-  const badgeH = 38;
-  const badgeX = rightEdge - rightHalfW + 10;
+  if (isDefaultSlogan) {
+    ctx.fillStyle = '#0f172a';
+    ctx.font = getNastaliqFont(700, 23);
+    ctx.textAlign = 'right';
+    ctx.fillText('جیوے', rightEdge - 6, y + 26);
+
+    ctx.font = getCleanDataFont(700, 28);
+    ctx.direction = 'ltr';
+    ctx.textAlign = 'right';
+    ctx.fillText('786', rightEdge - 72, y + 26);
+    ctx.direction = 'rtl';
+
+    if (flagImg) {
+      ctx.drawImage(flagImg, rightEdge - 224, y + 2, 86, 52);
+    }
+
+    ctx.save();
+    ctx.translate(rightEdge - 275, y + 24);
+    ctx.rotate(-0.1);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = getNastaliqFont(700, 26);
+    ctx.textAlign = 'center';
+    ctx.fillText('رجسٹرڈ', 0, 0);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#0f172a';
+    ctx.font = getNastaliqFont(700, 22);
+    ctx.textAlign = 'right';
+    ctx.fillText(st.topSloganUrdu, rightEdge - 6, y + 24);
+    if (flagImg) {
+      ctx.drawImage(flagImg, rightEdge - 290, y + 2, 80, 48);
+    }
+  }
+
+  // Green 24hr oval emblem
+  const ovalCx = rightZoneStart + 72;
+  const ovalCy = y + 28;
   ctx.fillStyle = '#0f7a38';
   ctx.beginPath();
-  ctx.roundRect(badgeX, y, badgeW, badgeH, 19);
+  ctx.ellipse(ovalCx, ovalCy, 62, 28, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.font = getFont('ur', 700, 19);
   ctx.textAlign = 'center';
-  ctx.fillText(st.serviceBadgeUrdu, badgeX + badgeW / 2, y + badgeH / 2);
+  ctx.font = getCleanDataFont(700, 21);
+  ctx.fillText('24', ovalCx, ovalCy - 10);
+  ctx.font = getNastaliqFont(700, 14);
+  ctx.fillText('گھنٹے سروس', ovalCx, ovalCy + 11);
 
-  // Bold Red Brand Title
-  ctx.fillStyle = '#d91c1c';
-  ctx.font = getFont('ur', 700, 74);
-  ctx.textAlign = 'center';
-  const brandCenterX = rightEdge - rightHalfW / 2;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 3;
-  ctx.strokeText(st.brandTitleUrdu, brandCenterX, y + 106);
-  ctx.fillText(st.brandTitleUrdu, brandCenterX, y + 106);
+  // 2) Calligraphic Masthead ("وڑائچ گڈز" red with white stroke + black shadow, "سمندری" outlined)
+  const titleTrimmed = (st.brandTitleUrdu || '').trim();
+  const hasSamundriSuffix =
+    titleTrimmed.endsWith('سمندری') && titleTrimmed.length > 7;
+  const mainMasthead = hasSamundriSuffix
+    ? titleTrimmed.slice(0, titleTrimmed.length - 'سمندری'.length).trim()
+    : titleTrimmed;
+  const citySuffix = hasSamundriSuffix ? 'سمندری' : '';
 
-  // Subtitle bar
-  ctx.fillStyle = '#f8fafc';
-  ctx.fillRect(rightEdge - rightHalfW, y + 158, rightHalfW, 38);
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(rightEdge - rightHalfW, y + 158, rightHalfW, 38);
+  const mastheadY = y + 122;
+  const brandCenterX = rightZoneStart + rightHalfW / 2;
+
+  if (citySuffix) {
+    // Draw main red title slightly to the right and Samundri to its left
+    ctx.font = getNastaliqFont(700, 68);
+    const mainW = ctx.measureText(mainMasthead).width;
+    ctx.font = getNastaliqFont(700, 44);
+    const cityW = ctx.measureText(citySuffix).width;
+    const totalW = mainW + cityW + 18;
+    const mainCenterX = brandCenterX + totalW / 2 - mainW / 2;
+    const cityCenterX = brandCenterX - totalW / 2 + cityW / 2;
+
+    // Main title shadow + white outline + red fill
+    ctx.font = getNastaliqFont(700, 68);
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.shadowColor = '#111827';
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 8;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(mainMasthead, mainCenterX, mastheadY);
+    ctx.restore();
+    ctx.fillStyle = '#dc2626';
+    ctx.fillText(mainMasthead, mainCenterX, mastheadY);
+
+    // City suffix outlined calligraphy
+    ctx.font = getNastaliqFont(700, 44);
+    ctx.save();
+    ctx.shadowColor = '#1e293b';
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 4.5;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(citySuffix, cityCenterX, mastheadY + 6);
+    ctx.restore();
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillText(citySuffix, cityCenterX, mastheadY + 6);
+  } else {
+    ctx.font = getNastaliqFont(700, 64);
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.shadowColor = '#111827';
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 8;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(mainMasthead, brandCenterX, mastheadY);
+    ctx.restore();
+    ctx.fillStyle = '#dc2626';
+    ctx.fillText(mainMasthead, brandCenterX, mastheadY);
+  }
+
+  // 3) Subtitle flanked by triple horizontal rules
+  const subY = y + 206;
   ctx.fillStyle = '#0f172a';
-  ctx.font = getFont('ur', 700, 21);
-  ctx.fillText(fitText(ctx, st.brandSubtitleUrdu, rightHalfW - 20), brandCenterX, y + 177);
+  ctx.font = getNastaliqFont(700, 20);
+  ctx.textAlign = 'center';
+  const subText = fitText(ctx, st.brandSubtitleUrdu, rightHalfW - 140);
+  const subTextW = ctx.measureText(subText).width;
+  ctx.fillText(subText, brandCenterX, subY);
 
-  // Left Half: Yellow Primary Box + Green Secondary Box + Red Group Badge
-  const yellowW = leftHalfW * 0.57;
-  const greenW = leftHalfW - yellowW - 14;
+  const ruleGap = 14;
+  const leftRuleEnd = brandCenterX - subTextW / 2 - ruleGap;
+  const rightRuleStart = brandCenterX + subTextW / 2 + ruleGap;
+  [-5, 0, 5].forEach((offset, i) => {
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = i === 1 ? 1.2 : 1.8;
+    if (leftRuleEnd > rightZoneStart + 8) {
+      ctx.beginPath();
+      ctx.moveTo(rightZoneStart, subY + offset);
+      ctx.lineTo(leftRuleEnd, subY + offset);
+      ctx.stroke();
+    }
+    if (rightEdge > rightRuleStart + 8) {
+      ctx.beginPath();
+      ctx.moveTo(rightRuleStart, subY + offset);
+      ctx.lineTo(rightEdge, subY + offset);
+      ctx.stroke();
+    }
+  });
+
+  // 4) Left Side Contact Cards (Yellow Primary + Red 43 Group Oval + Green Secondary)
+  const yellowW = Math.round(leftHalfW * 0.58); // 406px
+  const greenW = leftHalfW - yellowW - 14; // 280px
   const yellowX = innerX + greenW + 14;
 
-  // Yellow contact box
+  // Yellow Box
   ctx.fillStyle = '#fef3c7';
-  ctx.fillRect(yellowX, y, yellowW, 196);
+  ctx.fillRect(yellowX, y, yellowW, 226);
   ctx.strokeStyle = '#d97706';
   ctx.lineWidth = 2;
-  ctx.strokeRect(yellowX, y, yellowW, 196);
+  ctx.strokeRect(yellowX, y, yellowW, 226);
 
-  ctx.fillStyle = '#b91c1c';
-  ctx.font = getFont('ur', 700, 21);
+  ctx.fillStyle = '#dc2626';
+  ctx.font = getNastaliqFont(700, 20);
   ctx.textAlign = 'center';
   ctx.fillText(
-    fitText(ctx, st.primaryContactTitle, yellowW - 16),
+    fitText(ctx, st.primaryContactTitle, yellowW - 18),
     yellowX + yellowW / 2,
     y + 24
   );
-  ctx.strokeStyle = 'rgba(217,119,6,0.4)';
+  ctx.strokeStyle = 'rgba(217,119,6,0.45)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(yellowX + 12, y + 44);
-  ctx.lineTo(yellowX + yellowW - 12, y + 44);
+  ctx.moveTo(yellowX + 12, y + 46);
+  ctx.lineTo(yellowX + yellowW - 12, y + 46);
   ctx.stroke();
 
-  ctx.font = getMonoFont(700, 25);
+  ctx.fillStyle = '#dc2626';
+  ctx.font = getCondensedFont(700, 32);
   ctx.direction = 'ltr';
   st.primaryContactPhones.slice(0, 4).forEach((ph, idx) => {
-    ctx.fillText(ph, yellowX + yellowW / 2, y + 72 + idx * 32);
+    const py = y + 76 + idx * 41;
+    const textCenterX = yellowX + yellowW / 2 + (idx === 1 || idx === 2 ? 12 : 0);
+    ctx.textAlign = 'center';
+    ctx.fillText(ph, textCenterX, py);
+    const numW = ctx.measureText(ph).width;
+
+    if (idx === 1 && waImg) {
+      ctx.drawImage(waImg, textCenterX - numW / 2 - 28, py - 12, 22, 22);
+    }
+    if (idx === 2) {
+      // Ufone badge
+      const bx = textCenterX - numW / 2 - 44;
+      const by = py - 9;
+      ctx.fillStyle = '#ea580c';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, 38, 17, 3);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = getCleanDataFont(700, 10);
+      ctx.fillText('Ufone', bx + 19, py);
+      ctx.fillStyle = '#dc2626';
+      ctx.font = getCondensedFont(700, 32);
+    }
   });
   ctx.direction = 'rtl';
 
-  // Red Group Pill
+  // Red 43 Group Oval
+  const grpCx = innerX + greenW / 2;
+  const grpCy = y + 32;
   ctx.fillStyle = '#dc2626';
   ctx.beginPath();
-  ctx.roundRect(innerX, y, greenW, 44, 22);
+  ctx.ellipse(grpCx, grpCy, greenW / 2 - 4, 31, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = getFont('ur', 700, 18);
-  ctx.fillText(fitText(ctx, st.groupBadgeUrdu, greenW - 16), innerX + greenW / 2, y + 22);
 
-  // Green Secondary Contact Box
+  const groupText = (st.groupBadgeUrdu || '').trim();
+  const groupParts = groupText.startsWith('43 گروپ')
+    ? ['43 گروپ', groupText.slice('43 گروپ'.length).trim()]
+    : [groupText];
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  if (groupParts.length === 2) {
+    ctx.font = getNastaliqFont(700, 16);
+    ctx.fillText(groupParts[0], grpCx, grpCy - 11);
+    ctx.font = getNastaliqFont(700, 15);
+    ctx.fillText(fitText(ctx, groupParts[1], greenW - 36), grpCx, grpCy + 11);
+  } else {
+    ctx.font = getNastaliqFont(700, 16);
+    ctx.fillText(fitText(ctx, groupText, greenW - 30), grpCx, grpCy);
+  }
+
+  // Green Secondary Box
   ctx.fillStyle = '#dcfce7';
-  ctx.fillRect(innerX, y + 54, greenW, 142);
+  ctx.fillRect(innerX, y + 72, greenW, 154);
   ctx.strokeStyle = '#15803d';
   ctx.lineWidth = 2;
-  ctx.strokeRect(innerX, y + 54, greenW, 142);
+  ctx.strokeRect(innerX, y + 72, greenW, 154);
 
-  ctx.fillStyle = '#b91c1c';
-  ctx.font = getFont('ur', 700, 22);
-  ctx.fillText(
-    fitText(ctx, st.secondaryContactTitle, greenW - 16),
-    innerX + greenW / 2,
-    y + 82
-  );
-  ctx.font = getMonoFont(700, 22);
+  ctx.font = getNastaliqFont(700, 25);
+  ctx.textAlign = 'center';
+  ctx.save();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
+  ctx.strokeText(fitText(ctx, st.secondaryContactTitle, greenW - 18), grpCx, y + 104);
+  ctx.restore();
+  ctx.fillStyle = '#dc2626';
+  ctx.fillText(fitText(ctx, st.secondaryContactTitle, greenW - 18), grpCx, y + 104);
+
+  ctx.fillStyle = '#dc2626';
+  ctx.font = getCondensedFont(700, 28);
   ctx.direction = 'ltr';
   st.secondaryContactPhones.slice(0, 2).forEach((ph, idx) => {
-    ctx.fillText(ph, innerX + greenW / 2, y + 124 + idx * 34);
+    ctx.fillText(ph, grpCx, y + 150 + idx * 40);
   });
   ctx.direction = 'rtl';
 
-  y += 216;
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(innerX, y);
-  ctx.lineTo(rightEdge, y);
-  ctx.stroke();
+  y += 264;
 
-  y += 28;
-
-  // ── METADATA LINES ──
+  // ── METADATA LINES (Clean Dark Text for User Values) ──
   const drawFieldLine = (
     xStartRight: number,
     width: number,
@@ -429,46 +634,46 @@ export async function generateBiltyPdfBlob(
     val: string,
     mono = false
   ) => {
-    ctx.fillStyle = '#b91c1c';
-    ctx.font = getFont('ur', 700, 21);
+    ctx.fillStyle = '#dc2626';
+    ctx.font = getNastaliqFont(700, 19);
     ctx.textAlign = 'right';
     ctx.fillText(label, xStartRight, yPos);
     const labelW = ctx.measureText(label).width + 14;
 
     ctx.fillStyle = '#0f172a';
-    ctx.font = mono ? getMonoFont(700, 21) : getFont('ur', 600, 22);
+    ctx.font = mono ? getMonoFont(700, 21) : getCleanDataFont(600, 22);
     if (mono) ctx.direction = 'ltr';
     ctx.textAlign = mono ? 'left' : 'right';
-    const valX = mono ? xStartRight - width + 8 : xStartRight - labelW;
-    ctx.fillText(fitText(ctx, val || '', width - labelW - 10), valX, yPos);
+    const valX = mono ? xStartRight - width + 10 : xStartRight - labelW;
+    ctx.fillText(fitText(ctx, val || '', width - labelW - 14), valX, yPos);
     ctx.direction = 'rtl';
 
-    ctx.strokeStyle = '#64748b';
+    ctx.strokeStyle = '#475569';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(xStartRight - width + 10, yPos + 18);
-    ctx.lineTo(xStartRight, yPos + 18);
+    ctx.moveTo(xStartRight - width + 10, yPos + 19);
+    ctx.lineTo(xStartRight, yPos + 19);
     ctx.stroke();
   };
 
-  // Row 1: Bilty No | From | To | Date | Gari No
-  drawFieldLine(rightEdge, 220, y, 'بلٹی نمبر:', bilty.biltyNumber, true);
-  drawFieldLine(rightEdge - 235, 310, y, 'از:', bilty.fromCity);
-  drawFieldLine(rightEdge - 560, 310, y, 'تا:', bilty.toCity);
-  drawFieldLine(rightEdge - 885, 290, y, 'تاریخ:', bilty.date, true);
-  drawFieldLine(rightEdge - 1190, innerW - 1190, y, 'گاڑی نمبر:', bilty.gariNumber, true);
+  // Row 1: Bilty No | Az | Ta | Date | Gari No
+  drawFieldLine(rightEdge, 210, y, 'بلٹی نمبر:', bilty.biltyNumber, true);
+  drawFieldLine(rightEdge - 225, 320, y, 'از:', bilty.fromCity);
+  drawFieldLine(rightEdge - 560, 320, y, 'تا:', bilty.toCity);
+  drawFieldLine(rightEdge - 895, 300, y, 'تاریخ:', bilty.date, true);
+  drawFieldLine(rightEdge - 1210, innerW - 1210, y, 'گاڑی نمبر:', bilty.gariNumber, true);
 
-  y += 50;
+  y += 54;
 
-  // Row 2: Sender (Right 58%) + Boxed Driver (Left 40%)
-  const senderW = innerW * 0.56;
-  const driverBoxW = innerW * 0.41;
+  // Row 2: Sender (Right 56%) + Boxed Driver (Left 42%)
+  const senderW = Math.round(innerW * 0.56);
+  const driverBoxW = innerW - senderW - 24;
   drawFieldLine(
     rightEdge,
     senderW,
     y,
     'بھیجنے والے کا نام و موبائل نمبر:',
-    [bilty.senderName, bilty.senderPhone].filter(Boolean).join('  ·  ')
+    [bilty.senderName, bilty.senderPhone].filter(Boolean).join(' · ')
   );
 
   ctx.fillStyle = '#f0fdf4';
@@ -476,25 +681,27 @@ export async function generateBiltyPdfBlob(
   ctx.strokeStyle = '#15803d';
   ctx.lineWidth = 2;
   ctx.strokeRect(innerX, y - 22, driverBoxW, 44);
-  ctx.fillStyle = '#b91c1c';
-  ctx.font = getFont('ur', 700, 19);
+
+  ctx.fillStyle = '#dc2626';
+  ctx.font = getNastaliqFont(700, 18);
   ctx.textAlign = 'right';
   const drvLbl = 'ڈرائیور کا نام و موبائل نمبر:';
   ctx.fillText(drvLbl, innerX + driverBoxW - 12, y);
   const drvLblW = ctx.measureText(drvLbl).width + 20;
+
   ctx.fillStyle = '#0f172a';
-  ctx.font = getFont('ur', 600, 20);
+  ctx.font = getCleanDataFont(700, 20);
   ctx.fillText(
     fitText(
       ctx,
       [bilty.driverName, bilty.driverPhone].filter(Boolean).join(' · '),
-      driverBoxW - drvLblW - 16
+      driverBoxW - drvLblW - 18
     ),
     innerX + driverBoxW - drvLblW,
     y
   );
 
-  y += 52;
+  y += 54;
 
   // Row 3: Receiver
   drawFieldLine(
@@ -502,78 +709,79 @@ export async function generateBiltyPdfBlob(
     innerW,
     y,
     'لینے والے کا نام اور موبائل نمبر:',
-    [bilty.receiverName, bilty.receiverPhone].filter(Boolean).join('  ·  ')
+    [bilty.receiverName, bilty.receiverPhone].filter(Boolean).join(' · ')
   );
 
   y += 38;
 
-  // ── GREEN CONSIGNMENT TABLE ──
-  const hasAdvance = Number(bilty.advancePaid) > 0;
+  // ── 6-COLUMN GREEN CONSIGNMENT TABLE (All 6 columns ALWAYS visible) ──
   const totalFreight = Number(bilty.freightAmount) || 0;
   const advanceVal = Number(bilty.advancePaid) || 0;
   const payable = Math.max(0, totalFreight - advanceVal);
 
-  const cols = hasAdvance
-    ? [
-        { label: 'تعداد', w: 190, val: bilty.packagesCount || '', mono: false },
-        { label: 'تفصیل مال', w: innerW - 940, val: bilty.goodsDescription || '', mono: false },
-        { label: 'وزن', w: 180, val: bilty.weight || '', mono: false },
-        {
-          label: 'کل کرایہ',
-          w: 190,
-          val: totalFreight > 0 ? totalFreight.toLocaleString('en-PK') : '',
-          mono: true,
-        },
-        {
-          label: 'پیشگی',
-          w: 170,
-          val: advanceVal.toLocaleString('en-PK'),
-          mono: true,
-        },
-        {
-          label: 'کرایہ قابل ادا',
-          w: 210,
-          val: totalFreight > 0 || payable > 0 ? payable.toLocaleString('en-PK') : '',
-          mono: true,
-        },
-      ]
-    : [
-        { label: 'تعداد', w: 200, val: bilty.packagesCount || '', mono: false },
-        { label: 'تفصیل مال', w: innerW - 810, val: bilty.goodsDescription || '', mono: false },
-        { label: 'وزن', w: 190, val: bilty.weight || '', mono: false },
-        {
-          label: 'کل کرایہ',
-          w: 200,
-          val: totalFreight > 0 ? totalFreight.toLocaleString('en-PK') : '',
-          mono: true,
-        },
-        {
-          label: 'کرایہ قابل ادا',
-          w: 220,
-          val: totalFreight > 0 || payable > 0 ? payable.toLocaleString('en-PK') : '',
-          mono: true,
-        },
-      ];
+  const cols = [
+    { label: 'تعداد', w: 175, val: bilty.packagesCount || '', mono: false },
+    { label: 'تفصیل مال', w: 555, val: bilty.goodsDescription || '', mono: false },
+    { label: 'وزن', w: 175, val: bilty.weight || '', mono: false },
+    {
+      label: 'کل کرایہ',
+      w: 225,
+      val: totalFreight > 0 ? totalFreight.toLocaleString('en-PK') : '',
+      mono: true,
+    },
+    {
+      label: 'پیشگی',
+      w: 210,
+      val: advanceVal > 0 ? advanceVal.toLocaleString('en-PK') : '',
+      mono: true,
+    },
+    {
+      label: 'کرایہ قابل ادا',
+      w: 270,
+      val: totalFreight > 0 || payable > 0 ? payable.toLocaleString('en-PK') : '',
+      mono: true,
+    },
+  ];
 
-  const headerH = 48;
-  const bodyH = 290;
+  const headerH = 52;
+  const bodyH = 392;
 
-  // Green header bar
+  // Green header fill + outer table border
   ctx.fillStyle = '#0f7a38';
   ctx.fillRect(innerX, y, innerW, headerH);
   ctx.strokeStyle = '#1e293b';
   ctx.lineWidth = 2.5;
   ctx.strokeRect(innerX, y, innerW, headerH + bodyH);
 
-  let cx = rightEdge;
-  cols.forEach((col, idx) => {
-    // Column Header
-    ctx.fillStyle = '#ffffff';
-    ctx.font = getFont('ur', 700, 22);
-    ctx.textAlign = 'center';
-    ctx.fillText(col.label, cx - col.w / 2, y + headerH / 2);
+  // Realistic Grayscale Truck Watermark across the middle of the table body
+  if (truckImg) {
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    const wmW = 350;
+    const wmH = 358;
+    const wmX = innerX + (innerW - wmW) / 2;
+    const wmY = y + headerH + (bodyH - wmH) / 2 - 4;
+    ctx.drawImage(truckImg, wmX, wmY, wmW, wmH);
+    ctx.restore();
+  }
 
-    // Column Divider
+  let cx = rightEdge;
+  let tafseelCellRight = rightEdge;
+  let tafseelCellW = 555;
+
+  cols.forEach((col, idx) => {
+    if (idx === 1) {
+      tafseelCellRight = cx;
+      tafseelCellW = col.w;
+    }
+
+    // Nastaliq white column header
+    ctx.fillStyle = '#ffffff';
+    ctx.font = getNastaliqFont(700, 21);
+    ctx.textAlign = 'center';
+    ctx.fillText(col.label, cx - col.w / 2, y + headerH / 2 + 1);
+
+    // Column dividers
     if (idx < cols.length - 1) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.5;
@@ -582,52 +790,66 @@ export async function generateBiltyPdfBlob(
       ctx.lineTo(cx - col.w, y + headerH);
       ctx.stroke();
 
-      ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.moveTo(cx - col.w, y + headerH);
       ctx.lineTo(cx - col.w, y + headerH + bodyH);
       ctx.stroke();
     }
 
-    // Column Body Value
+    // Clean Dark Text for entered values
     ctx.fillStyle = '#0f172a';
     if (col.mono) {
       ctx.font = getMonoFont(700, 30);
       ctx.direction = 'ltr';
       ctx.textAlign = 'center';
-      ctx.fillText(col.val, cx - col.w / 2, y + headerH + 64);
+      ctx.fillText(col.val, cx - col.w / 2, y + headerH + 66);
       ctx.direction = 'rtl';
     } else {
-      ctx.font = getFont('ur', 700, 26);
+      ctx.font = getCleanDataFont(700, 25);
       ctx.textAlign = 'center';
-      const lines = wrapTextLines(ctx, col.val, col.w - 28, 4);
+      const lines = wrapTextLines(ctx, col.val, col.w - 30, 5);
       lines.forEach((ln, li) => {
-        ctx.fillText(ln, cx - col.w / 2, y + headerH + 56 + li * 38);
+        ctx.fillText(ln, cx - col.w / 2, y + headerH + 58 + li * 38);
       });
+      if (idx === 1 && bilty.notes) {
+        ctx.fillStyle = '#334155';
+        ctx.font = getCleanDataFont(400, 17);
+        const noteLines = wrapTextLines(ctx, bilty.notes, col.w - 36, 2);
+        noteLines.forEach((nl, nli) => {
+          ctx.fillText(
+            nl,
+            cx - col.w / 2,
+            y + headerH + 62 + lines.length * 38 + nli * 24
+          );
+        });
+      }
     }
 
     cx -= col.w;
   });
 
-  // Motto line inside bottom of table
-  y += headerH + bodyH + 22;
-  ctx.fillStyle = '#b91c1c';
-  ctx.font = getFont('ur', 700, 19);
+  // Motto + Manager Signature inside bottom of Tafseel Maal cell (single clean instance)
+  const mottoClean = (st.mottoUrdu || '')
+    .replace(/\s*[☆★]?\s*دستخط منیجر\s*$/, '')
+    .trim();
+  const mottoY = y + headerH + bodyH - 22;
+  ctx.fillStyle = '#dc2626';
+  ctx.font = getNastaliqFont(700, 16);
   ctx.textAlign = 'right';
-  ctx.fillText(st.mottoUrdu, rightEdge, y);
+  ctx.fillText(`${mottoClean} ★`, tafseelCellRight - 14, mottoY);
 
-  ctx.fillStyle = '#334155';
   ctx.textAlign = 'left';
-  ctx.fillText('دستخط منیجر: ____________________', innerX, y);
+  ctx.fillText('دستخط منیجر _________', tafseelCellRight - tafseelCellW + 14, mottoY);
 
-  y += 28;
+  y += headerH + bodyH + 18;
 
   // ── BOTTOM FOOTER STRIP: TERMS (Right) + PATRON (Left) ──
-  const footerH = H - M - 24 - y;
-  const patronW = innerW * 0.27;
-  const termsW = innerW - patronW - 18;
-  const termsX = innerX + patronW + 18;
+  const footerH = H - M - 20 - y;
+  const patronW = 444;
+  const termsW = innerW - patronW - 22;
+  const termsX = innerX + patronW + 22;
 
   // Yellow Terms Box
   ctx.fillStyle = '#fef9c3';
@@ -636,53 +858,102 @@ export async function generateBiltyPdfBlob(
   ctx.lineWidth = 2;
   ctx.strokeRect(termsX, y, termsW, footerH);
 
+  // Vertical/rotated "شرائط:" label on the right side of the yellow box
+  const labelStripW = 46;
+  ctx.strokeStyle = 'rgba(217,119,6,0.35)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(termsX + termsW - labelStripW, y + 8);
+  ctx.lineTo(termsX + termsW - labelStripW, y + footerH - 8);
+  ctx.stroke();
+
+  ctx.save();
+  ctx.translate(termsX + termsW - labelStripW / 2, y + footerH / 2);
+  ctx.rotate(-Math.PI / 2);
   ctx.fillStyle = '#dc2626';
-  ctx.font = getFont('ur', 700, 20);
-  ctx.textAlign = 'right';
-  ctx.fillText('شرائط:', termsX + termsW - 14, y + 22);
+  ctx.font = getNastaliqFont(700, 22);
+  ctx.textAlign = 'center';
+  ctx.fillText('شرائط:', 0, 0);
+  ctx.restore();
+
+  // Render ALL 7 clauses across 2 clean columns with full word wrapping (ZERO truncation)
+  const termsContentRight = termsX + termsW - labelStripW - 14;
+  const colGap = 24;
+  const colTermsW = (termsW - labelStripW - 28 - colGap) / 2;
 
   ctx.fillStyle = '#7f1d1d';
-  ctx.font = getFont('ur', 400, 14);
-  const colTermsW = (termsW - 44) / 2;
-  st.termsUrdu.slice(0, 7).forEach((clause, idx) => {
-    const colIdx = idx < 4 ? 0 : 1;
-    const rowIdx = idx < 4 ? idx : idx - 4;
-    const tx = colIdx === 0 ? termsX + termsW - 14 : termsX + colTermsW + 10;
-    const ty = y + 48 + rowIdx * 28;
-    ctx.fillText(fitText(ctx, clause, colTermsW), tx, ty);
-  });
+  ctx.font = getNastaliqFont(400, 14);
+  ctx.textAlign = 'right';
+
+  const rightClauses = st.termsUrdu.slice(0, 4);
+  const leftClauses = st.termsUrdu.slice(4, 7);
+
+  let ry = y + 24;
+  for (const clause of rightClauses) {
+    const wrapped = wrapAllTextLines(ctx, clause, colTermsW);
+    for (const line of wrapped) {
+      ctx.fillText(line, termsContentRight, ry);
+      ry += 25;
+    }
+    ry += 2;
+  }
+
+  let ly = y + 24;
+  const leftColRight = termsContentRight - colTermsW - colGap;
+  for (const clause of leftClauses) {
+    const wrapped = wrapAllTextLines(ctx, clause, colTermsW);
+    for (const line of wrapped) {
+      ctx.fillText(line, leftColRight, ly);
+      ly += 25;
+    }
+    ly += 2;
+  }
 
   // Patron Box (Left)
   ctx.fillStyle = '#fef3c7';
   ctx.fillRect(innerX, y, patronW, footerH);
-  ctx.strokeStyle = '#64748b';
+  ctx.strokeStyle = '#475569';
   ctx.lineWidth = 2;
   ctx.strokeRect(innerX, y, patronW, footerH);
 
   const pCenter = innerX + patronW / 2;
   ctx.fillStyle = '#1e293b';
-  ctx.fillRect(pCenter - 95, y + 12, 190, 26);
+  ctx.fillRect(pCenter - 110, y + 12, 220, 30);
   ctx.fillStyle = '#ffffff';
-  ctx.font = getFont('ur', 700, 15);
+  ctx.font = getNastaliqFont(700, 15);
   ctx.textAlign = 'center';
-  ctx.fillText(st.patronLabelUrdu, pCenter, y + 25);
+  ctx.fillText(st.patronLabelUrdu, pCenter, y + 27);
 
-  ctx.fillStyle = '#b91c1c';
-  ctx.font = getFont('ur', 700, 26);
-  ctx.fillText(st.patronNameUrdu, pCenter, y + 58);
+  // Patron Name (Red outlined Nastaliq)
+  ctx.font = getNastaliqFont(700, 29);
+  ctx.save();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
+  ctx.strokeText(st.patronNameUrdu, pCenter, y + 70);
+  ctx.restore();
+  ctx.fillStyle = '#dc2626';
+  ctx.fillText(st.patronNameUrdu, pCenter, y + 70);
 
+  // Designation
   ctx.fillStyle = '#0f172a';
-  ctx.font = getFont('ur', 600, 15);
-  ctx.fillText(fitText(ctx, st.patronDesignationUrdu, patronW - 20), pCenter, y + 90);
+  ctx.font = getNastaliqFont(700, 15);
+  ctx.fillText(fitText(ctx, st.patronDesignationUrdu, patronW - 20), pCenter, y + 110);
 
-  ctx.font = getMonoFont(700, 23);
+  // Wide bold phone
+  ctx.fillStyle = '#0f172a';
+  ctx.font = getCleanDataFont(700, 26);
   ctx.direction = 'ltr';
-  ctx.fillText(st.patronPhone, pCenter, y + 126);
+  ctx.fillText(st.patronPhone, pCenter, y + 148);
   ctx.direction = 'rtl';
 
-  ctx.fillStyle = '#475569';
-  ctx.font = getFont('ur', 400, 13);
-  ctx.fillText(fitText(ctx, st.patronNoteUrdu, patronW - 20), pCenter, y + 154);
+  // Bottom complaint note
+  ctx.fillStyle = '#334155';
+  ctx.font = getNastaliqFont(600, 13);
+  const noteLines = wrapAllTextLines(ctx, st.patronNoteUrdu, patronW - 24);
+  noteLines.slice(0, 2).forEach((nl, nIdx) => {
+    ctx.fillText(nl, pCenter, y + 182 + nIdx * 20);
+  });
 
   return canvasesToPdfBlob([canvas], 'landscape');
 }
