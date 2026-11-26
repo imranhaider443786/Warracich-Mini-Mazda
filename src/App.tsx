@@ -27,6 +27,7 @@ import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { TRANSLATIONS } from './i18n';
 import {
   clearAccessToken,
+  formatAuthError,
   getAccessToken,
   googleSignIn,
   initAuth,
@@ -95,6 +96,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [hasToken, setHasToken] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [driveFiles, setDriveFiles] = useState<DriveFileItem[]>([]);
   const folderTreeRef = useRef<DriveFolderTree | null>(null);
   const isSyncingRef = useRef(false);
@@ -110,9 +112,12 @@ export default function App() {
     (text: string, type: 'success' | 'info' | 'error' = 'info') => {
       const id = Date.now() + Math.random();
       setToasts((prev) => [...prev.slice(-2), { id, text, type }]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((item) => item.id !== id));
-      }, 4200);
+      setTimeout(
+        () => {
+          setToasts((prev) => prev.filter((item) => item.id !== id));
+        },
+        type === 'error' ? 9000 : 4200
+      );
     },
     []
   );
@@ -319,16 +324,23 @@ export default function App() {
   ]);
 
   const handleGoogleLogin = async () => {
+    setAuthError(null);
+    let result: { user: User; accessToken: string };
     try {
-      const result = await googleSignIn();
-      setUser(result.user);
-      setHasToken(true);
-      folderTreeRef.current = null;
-      notify(
-        lang === 'ur' ? 'گوگل ڈرائیو سے منسلک ہو گیا۔' : 'Connected to Google Drive.',
-        'success'
-      );
+      result = await googleSignIn();
+    } catch (err) {
+      console.error('Google Sign-In error:', err);
+      const formatted = formatAuthError(err, lang);
+      setAuthError(formatted);
+      notify(formatted, 'error');
+      return;
+    }
 
+    setUser(result.user);
+    setHasToken(true);
+    folderTreeRef.current = null;
+
+    try {
       const isLocalEmpty =
         ledger.drivers.length === 0 &&
         ledger.bilties.length === 0 &&
@@ -367,15 +379,23 @@ export default function App() {
             : 'Loaded existing Adda backup from Google Drive.',
           'success'
         );
+      } else {
+        notify(
+          lang === 'ur' ? 'گوگل ڈرائیو سے منسلک ہو گیا۔' : 'Connected to Google Drive.',
+          'success'
+        );
       }
       const files = await listAllAddaDriveFiles(result.accessToken, tree);
       setDriveFiles(files);
-    } catch (err) {
-      console.error(err);
-      notify(
-        lang === 'ur' ? 'گوگل سائن ان مکمل نہ ہو سکا۔' : 'Google sign-in was cancelled or failed.',
-        'error'
-      );
+    } catch (driveErr) {
+      console.error('Google Drive setup error after sign-in:', driveErr);
+      const detail = driveErr instanceof Error ? driveErr.message : String(driveErr || '');
+      const msg =
+        lang === 'ur'
+          ? `سائن ان ہو گیا لیکن گوگل ڈرائیو فولڈر تک رسائی ناکام رہی: ${detail}`
+          : `Signed in, but Google Drive folder access failed: ${detail}`;
+      setAuthError(msg);
+      notify(msg, 'error');
     }
   };
 
@@ -383,6 +403,7 @@ export default function App() {
     await logout();
     setUser(null);
     setHasToken(false);
+    setAuthError(null);
     setDriveFiles([]);
     folderTreeRef.current = null;
     notify(lang === 'ur' ? 'گوگل اکاؤنٹ سائن آؤٹ ہو گیا۔' : 'Signed out of Google.', 'info');
@@ -969,6 +990,7 @@ export default function App() {
                     user={user}
                     hasToken={hasToken}
                     isSyncing={isSyncing}
+                    authError={authError}
                     syncMeta={ledger.syncMeta}
                     pendingPdfs={pendingPdfs}
                     driveFiles={driveFiles}

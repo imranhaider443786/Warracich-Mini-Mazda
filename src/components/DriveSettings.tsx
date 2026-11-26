@@ -28,6 +28,7 @@ interface DriveSettingsProps {
   user: User | null;
   hasToken: boolean;
   isSyncing: boolean;
+  authError: string | null;
   syncMeta: SyncMetadata;
   pendingPdfs: PendingPdfJob[];
   driveFiles: DriveFileItem[];
@@ -49,6 +50,7 @@ export const DriveSettings: React.FC<DriveSettingsProps> = ({
   user,
   hasToken,
   isSyncing,
+  authError,
   syncMeta,
   pendingPdfs,
   driveFiles,
@@ -184,6 +186,12 @@ export const DriveSettings: React.FC<DriveSettingsProps> = ({
             )}
           </div>
         </div>
+
+        {authError && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-900">
+            {authError}
+          </div>
+        )}
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
