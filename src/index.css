@@ -3,7 +3,7 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", "Noto Sans Arabic", system-ui, -apple-system, sans-serif;
   --font-urdu: "Noto Sans Arabic", "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-nastaliq: "Gulzar", "Noto Nastaliq Urdu", "Noto Sans Arabic", serif;
+  --font-nastaliq: "Noto Nastaliq Urdu", "Gulzar", "Noto Sans Arabic", serif;
   --font-condensed: "Oswald", "IBM Plex Mono", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
@@ -32,21 +32,21 @@
 
 .bilty-masthead-red {
   color: #dc2626;
-  -webkit-text-stroke: 4px #ffffff;
+  -webkit-text-stroke: 4.5px #ffffff;
   paint-order: stroke fill;
   text-shadow: 3px 3px 0 #0f172a, 1.5px 1.5px 0 #0f172a;
 }
 
 .bilty-masthead-outline {
   color: #f8fafc;
-  -webkit-text-stroke: 2.6px #334155;
+  -webkit-text-stroke: 2.8px #334155;
   paint-order: stroke fill;
   text-shadow: 2px 2px 0 #0f172a;
 }
 
 .bilty-calligraphy-red-outline {
   color: #dc2626;
-  -webkit-text-stroke: 2px #ffffff;
+  -webkit-text-stroke: 2.2px #ffffff;
   paint-order: stroke fill;
   text-shadow: 1.5px 1.5px 0 #0f172a;
 }
@@ -106,11 +106,11 @@
   min-width: 18px;
 }
 
-/* Print stylesheet: hide app chrome and fill A4 landscape edge-to-edge cleanly */
+/* Print stylesheet: lock full-bleed A4 landscape sheet with zero outer margins */
 @media print {
   @page {
     size: A4 landscape;
-    margin: 4mm;
+    margin: 2mm;
   }
 
   html,
@@ -133,14 +133,33 @@
     display: block !important;
   }
 
+  .print-main-reset {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .print-sheet-scaler {
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
   .print-surface {
+    position: static !important;
+    left: auto !important;
+    transform: none !important;
     border: none !important;
     box-shadow: none !important;
     margin: 0 !important;
-    padding: 2mm 3mm !important;
+    padding: 1.5mm 2.5mm !important;
     width: 100% !important;
     max-width: 100% !important;
-    min-height: 198mm !important;
+    height: 204mm !important;
+    min-height: 204mm !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;

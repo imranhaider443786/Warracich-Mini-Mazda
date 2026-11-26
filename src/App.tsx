@@ -713,8 +713,8 @@ export default function App() {
     navItems.find((item) => item.id === activeTab)?.label || t.appTitle;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="flex min-h-screen">
+    <div className="min-h-screen bg-slate-50 text-slate-900 print:min-h-0 print:bg-white">
+      <div className="flex min-h-screen print:block print:min-h-0">
         {/* Desktop Sidebar */}
         <aside className="no-print hidden w-64 shrink-0 flex-col border-e border-slate-200 bg-white lg:flex">
           <button
@@ -918,7 +918,7 @@ export default function App() {
             </div>
           )}
 
-          <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
+          <main className="print-main-reset mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
             {!dbReady ? (
               <div className="space-y-4">
                 <div className="h-10 w-64 animate-pulse rounded-lg bg-slate-200" />
