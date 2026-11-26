@@ -33,7 +33,7 @@ export const DEFAULT_WHATSAPP_TEMPLATES = [
 export const DEFAULT_BILTY_STATIONERY = {
   topSloganUrdu: 'جیوے 786 · رجسٹرڈ',
   serviceBadgeUrdu: '24 گھنٹے سروس',
-  brandTitleUrdu: 'وڑائچ گڈز سمندری',
+  brandTitleUrdu: 'وڑائچ منی مزدا گڈز',
   brandSubtitleUrdu: 'گڈز ٹرانسپورٹ کمپنی اوکاڑہ بائی پاس 466 روڈ سمندری',
   groupBadgeUrdu: '43 گروپ قلندر پاک زندہ باد',
   primaryContactTitle: 'عمران حیدر وڑائچ سمندری والے',
@@ -63,8 +63,8 @@ export const DEFAULT_BILTY_STATIONERY = {
 };
 
 export const DEFAULT_SETTINGS: AddaSettings = {
-  addaName: 'Warraich Goods Samundri',
-  addaNameUrdu: 'وڑائچ گڈز سمندری',
+  addaName: 'Warraich Mini Mazda Goods',
+  addaNameUrdu: 'وڑائچ منی مزدا گڈز',
   phone: '0300-7285443',
   address: 'Okara Bypass 466 Road, Samundri',
   addressUrdu: 'اوکاڑہ بائی پاس 466 روڈ سمندری',

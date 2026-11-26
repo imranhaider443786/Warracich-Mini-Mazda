@@ -78,16 +78,31 @@ export async function loadLedgerFromIndexedDb(): Promise<LedgerDatabase> {
         if (!val) {
           resolve(createEmptyDatabase());
         } else {
+          const savedSettings = val.settings;
+          const savedStationery = savedSettings?.biltyStationery;
+          const migratedBrandTitle =
+            !savedStationery?.brandTitleUrdu ||
+            savedStationery.brandTitleUrdu.trim() === 'وڑائچ گڈز سمندری'
+              ? DEFAULT_BILTY_STATIONERY.brandTitleUrdu
+              : savedStationery.brandTitleUrdu;
+          const migratedAddaNameUrdu =
+            !savedSettings?.addaNameUrdu ||
+            savedSettings.addaNameUrdu.trim() === 'وڑائچ گڈز سمندری'
+              ? DEFAULT_SETTINGS.addaNameUrdu
+              : savedSettings.addaNameUrdu;
+
           resolve({
             drivers: Array.isArray(val.drivers) ? val.drivers.map(normalizeDriver) : [],
             bilties: Array.isArray(val.bilties) ? val.bilties.map(normalizeBilty) : [],
             rooznamcha: Array.isArray(val.rooznamcha) ? val.rooznamcha : [],
             settings: {
               ...DEFAULT_SETTINGS,
-              ...(val.settings || {}),
+              ...(savedSettings || {}),
+              addaNameUrdu: migratedAddaNameUrdu,
               biltyStationery: {
                 ...DEFAULT_BILTY_STATIONERY,
-                ...(val.settings?.biltyStationery || {}),
+                ...(savedStationery || {}),
+                brandTitleUrdu: migratedBrandTitle,
               },
             },
             syncMeta: {
