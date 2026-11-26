@@ -77,6 +77,16 @@ interface ToastMessage {
   type: 'success' | 'info' | 'error';
 }
 
+type SubViewMode = 'main' | 'list' | 'wizard' | 'preview';
+
+interface AppHistoryState {
+  addaRoot?: boolean;
+  addaNav?: boolean;
+  tab?: WorkspaceTab;
+  subView?: SubViewMode;
+  drawer?: boolean;
+}
+
 export default function App() {
   const isOnline = useOnlineStatus();
   const [lang, setLang] = useState<Language>(() => {
@@ -84,8 +94,19 @@ export default function App() {
     return saved === 'ur' ? 'ur' : 'en';
   });
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('dashboard');
+  const [subView, setSubView] = useState<SubViewMode>('main');
   const [startWizardTab, setStartWizardTab] = useState<WorkspaceTab | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const activeTabRef = useRef<WorkspaceTab>(activeTab);
+  const subViewRef = useRef<SubViewMode>(subView);
+  const mobileMenuOpenRef = useRef<boolean>(mobileMenuOpen);
+  const lastExitPressRef = useRef<number>(0);
+  const rearmTimerRef = useRef<number | null>(null);
+
+  activeTabRef.current = activeTab;
+  subViewRef.current = subView;
+  mobileMenuOpenRef.current = mobileMenuOpen;
 
   // Core offline-first ledger state
   const [dbReady, setDbReady] = useState(false);
@@ -127,6 +148,98 @@ export default function App() {
     document.documentElement.lang = lang;
     localStorage.setItem('adda_ui_lang', lang);
   }, [lang]);
+
+  const langRef = useRef<Language>(lang);
+  langRef.current = lang;
+
+  useEffect(() => {
+    const currentState = (window.history.state || {}) as AppHistoryState;
+    if (!currentState.addaNav) {
+      window.history.replaceState({ addaRoot: true } satisfies AppHistoryState, '');
+      window.history.pushState(
+        {
+          addaNav: true,
+          tab: activeTabRef.current,
+          subView: subViewRef.current,
+        } satisfies AppHistoryState,
+        ''
+      );
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      const state = (event.state || {}) as AppHistoryState;
+
+      if (mobileMenuOpenRef.current && !state.drawer) {
+        setMobileMenuOpen(false);
+      } else if (state.drawer) {
+        setMobileMenuOpen(true);
+      }
+
+      if (state.addaNav && state.tab) {
+        if (rearmTimerRef.current !== null) {
+          window.clearTimeout(rearmTimerRef.current);
+          rearmTimerRef.current = null;
+        }
+        lastExitPressRef.current = 0;
+        setStartWizardTab(null);
+        setActiveTab(state.tab);
+        setSubView(state.subView || 'main');
+        return;
+      }
+
+      // Landed on root sentinel (addaRoot) or bottom of browser stack
+      if (activeTabRef.current !== 'dashboard' || subViewRef.current !== 'main') {
+        lastExitPressRef.current = 0;
+        setStartWizardTab(null);
+        setActiveTab('dashboard');
+        setSubView('main');
+        window.history.pushState(
+          { addaNav: true, tab: 'dashboard', subView: 'main' } satisfies AppHistoryState,
+          ''
+        );
+        return;
+      }
+
+      // Already on Home Page (dashboard): double back within 2 seconds exits
+      const now = Date.now();
+      if (now - lastExitPressRef.current < 2000) {
+        if (rearmTimerRef.current !== null) {
+          window.clearTimeout(rearmTimerRef.current);
+          rearmTimerRef.current = null;
+        }
+        return;
+      }
+
+      lastExitPressRef.current = now;
+      notify(TRANSLATIONS[langRef.current].pressBackAgainToExit, 'info');
+
+      if (rearmTimerRef.current !== null) {
+        window.clearTimeout(rearmTimerRef.current);
+      }
+      rearmTimerRef.current = window.setTimeout(() => {
+        rearmTimerRef.current = null;
+        lastExitPressRef.current = 0;
+        if (
+          activeTabRef.current === 'dashboard' &&
+          subViewRef.current === 'main' &&
+          !((window.history.state || {}) as AppHistoryState).addaNav
+        ) {
+          window.history.pushState(
+            { addaNav: true, tab: 'dashboard', subView: 'main' } satisfies AppHistoryState,
+            ''
+          );
+        }
+      }, 2000);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (rearmTimerRef.current !== null) {
+        window.clearTimeout(rearmTimerRef.current);
+      }
+    };
+  }, [notify]);
 
   useEffect(() => {
     let mounted = true;
@@ -689,9 +802,86 @@ export default function App() {
     }));
   };
 
+  const pushOrReplaceNav = useCallback(
+    (
+      tab: WorkspaceTab,
+      nextSubView: SubViewMode,
+      options?: { replace?: boolean; drawer?: boolean }
+    ) => {
+      if (rearmTimerRef.current !== null) {
+        window.clearTimeout(rearmTimerRef.current);
+        rearmTimerRef.current = null;
+      }
+      lastExitPressRef.current = 0;
+
+      const curHistory = (window.history.state || {}) as AppHistoryState;
+      if (curHistory.addaRoot && (tab !== 'dashboard' || nextSubView !== 'main' || options?.drawer)) {
+        window.history.pushState(
+          { addaNav: true, tab: 'dashboard', subView: 'main' } satisfies AppHistoryState,
+          ''
+        );
+      }
+
+      const nextState: AppHistoryState = {
+        addaNav: true,
+        tab,
+        subView: nextSubView,
+        ...(options?.drawer ? { drawer: true } : {}),
+      };
+
+      if (options?.replace) {
+        window.history.replaceState(nextState, '');
+      } else if (
+        tab !== activeTabRef.current ||
+        nextSubView !== subViewRef.current ||
+        Boolean(options?.drawer) !== mobileMenuOpenRef.current ||
+        curHistory.addaRoot
+      ) {
+        window.history.pushState(nextState, '');
+      }
+
+      setActiveTab(tab);
+      setSubView(nextSubView);
+    },
+    []
+  );
+
   const handleDashboardNavigate = (tab: WorkspaceTab, startWizard = false) => {
-    setActiveTab(tab);
+    const nextSubView: SubViewMode =
+      tab === 'dashboard' || tab === 'drive'
+        ? 'main'
+        : startWizard
+          ? 'wizard'
+          : tab === 'bilty' && ledger.bilties.length === 0
+            ? 'wizard'
+            : 'list';
+
+    const curHistory = (window.history.state || {}) as AppHistoryState;
+    const wasDrawerOpen = Boolean(curHistory.drawer);
+    setMobileMenuOpen(false);
     setStartWizardTab(startWizard ? tab : null);
+    pushOrReplaceNav(tab, nextSubView, { replace: wasDrawerOpen });
+  };
+
+  const handleSubViewChange = (
+    tab: WorkspaceTab,
+    nextSubView: 'list' | 'wizard' | 'preview',
+    options?: { replace?: boolean }
+  ) => {
+    pushOrReplaceNav(tab, nextSubView, options);
+  };
+
+  const handleOpenMobileMenu = () => {
+    setMobileMenuOpen(true);
+    pushOrReplaceNav(activeTabRef.current, subViewRef.current, { drawer: true });
+  };
+
+  const handleCloseMobileMenu = () => {
+    setMobileMenuOpen(false);
+    const curHistory = (window.history.state || {}) as AppHistoryState;
+    if (curHistory.drawer) {
+      window.history.back();
+    }
   };
 
   const t = TRANSLATIONS[lang];
@@ -788,14 +978,14 @@ export default function App() {
           <div className="no-print fixed inset-0 z-40 flex lg:hidden">
             <div
               className="fixed inset-0 bg-slate-900/40"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={handleCloseMobileMenu}
             />
             <aside className="relative z-50 flex w-64 flex-col bg-white shadow-xl">
               <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5">
                 <span className="text-base font-bold text-slate-900">{t.appTitle}</span>
                 <button
                   type="button"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={handleCloseMobileMenu}
                   className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
                 >
                   <X className="h-5 w-5" />
@@ -808,7 +998,6 @@ export default function App() {
                     type="button"
                     onClick={() => {
                       handleDashboardNavigate(item.id, false);
-                      setMobileMenuOpen(false);
                     }}
                     className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold ${
                       activeTab === item.id
@@ -835,7 +1024,7 @@ export default function App() {
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
-                onClick={() => setMobileMenuOpen(true)}
+                onClick={handleOpenMobileMenu}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 lg:hidden"
                 aria-label="Menu"
               >
@@ -943,6 +1132,8 @@ export default function App() {
                     settings={ledger.settings}
                     lang={lang}
                     autoStartWizard={startWizardTab === 'drivers'}
+                    externalSubView={subView === 'wizard' || subView === 'list' ? subView : 'list'}
+                    onSubViewChange={(next, opts) => handleSubViewChange('drivers', next, opts)}
                     onWizardClosed={() => setStartWizardTab(null)}
                     onAddDriver={handleAddDriver}
                     onUpdateDriver={handleUpdateDriver}
@@ -958,6 +1149,8 @@ export default function App() {
                     settings={ledger.settings}
                     lang={lang}
                     autoStartWizard={startWizardTab === 'rooznamcha'}
+                    externalSubView={subView === 'wizard' || subView === 'list' ? subView : 'list'}
+                    onSubViewChange={(next, opts) => handleSubViewChange('rooznamcha', next, opts)}
                     onWizardClosed={() => setStartWizardTab(null)}
                     onAddEntry={handleAddRooznamcha}
                     onUpdateEntry={handleUpdateRooznamcha}
@@ -974,6 +1167,12 @@ export default function App() {
                     settings={ledger.settings}
                     lang={lang}
                     autoStartWizard={startWizardTab === 'bilty'}
+                    externalSubView={
+                      subView === 'wizard' || subView === 'list' || subView === 'preview'
+                        ? subView
+                        : undefined
+                    }
+                    onSubViewChange={(next, opts) => handleSubViewChange('bilty', next, opts)}
                     onWizardClosed={() => setStartWizardTab(null)}
                     onSaveBilty={handleSaveBilty}
                     onUpdateBilty={handleUpdateBilty}

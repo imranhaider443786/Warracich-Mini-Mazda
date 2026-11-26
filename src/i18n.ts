@@ -186,6 +186,7 @@ export const TRANSLATIONS = {
     // Common
     installApp: 'Install App',
     installIOS: 'Install on iOS',
+    pressBackAgainToExit: 'Press back again to exit',
     onlineStatus: 'Online',
     offlineStatus: 'Offline Mode',
     pendingChangesLabel: 'pending sync',
@@ -361,6 +362,7 @@ export const TRANSLATIONS = {
     // Common
     installApp: 'ایپ انسٹال کریں',
     installIOS: 'آئی فون پر انسٹال کریں',
+    pressBackAgainToExit: 'ایپ بند کرنے کے لیے دوبارہ بیک بٹن دبائیں',
     onlineStatus: 'آن لائن',
     offlineStatus: 'آف لائن موڈ',
     pendingChangesLabel: 'تبدیلیاں سنک کے لیے باقی',

@@ -39,6 +39,8 @@ interface DriverRegisterProps {
   settings: AddaSettings;
   lang: Language;
   autoStartWizard?: boolean;
+  externalSubView?: 'list' | 'wizard';
+  onSubViewChange?: (view: 'list' | 'wizard', options?: { replace?: boolean }) => void;
   onWizardClosed?: () => void;
   onAddDriver: (entry: Omit<DriverEntry, 'id' | 'updatedAt'>) => void;
   onUpdateDriver: (entry: DriverEntry) => void;
@@ -65,6 +67,8 @@ export const DriverRegister: React.FC<DriverRegisterProps> = ({
   settings,
   lang,
   autoStartWizard,
+  externalSubView,
+  onSubViewChange,
   onWizardClosed,
   onAddDriver,
   onUpdateDriver,
@@ -83,6 +87,15 @@ export const DriverRegister: React.FC<DriverRegisterProps> = ({
       setWizardOpen(true);
     }
   }, [autoStartWizard]);
+
+  useEffect(() => {
+    if (externalSubView === 'list') {
+      setWizardOpen(false);
+      setEditingDriver(null);
+    } else if (externalSubView === 'wizard') {
+      setWizardOpen(true);
+    }
+  }, [externalSubView]);
 
   // Filters & marketing selection
   const [searchQuery, setSearchQuery] = useState('');
@@ -249,6 +262,7 @@ export const DriverRegister: React.FC<DriverRegisterProps> = ({
   const closeWizard = () => {
     setWizardOpen(false);
     setEditingDriver(null);
+    onSubViewChange?.('list', { replace: true });
     onWizardClosed?.();
   };
 
@@ -444,6 +458,7 @@ export const DriverRegister: React.FC<DriverRegisterProps> = ({
               onClick={() => {
                 setEditingDriver(null);
                 setWizardOpen(true);
+                onSubViewChange?.('wizard');
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-800 whitespace-nowrap"
             >
@@ -747,6 +762,7 @@ export const DriverRegister: React.FC<DriverRegisterProps> = ({
                               onClick={() => {
                                 setEditingDriver(d);
                                 setWizardOpen(true);
+                                onSubViewChange?.('wizard');
                               }}
                               title={t.edit}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"

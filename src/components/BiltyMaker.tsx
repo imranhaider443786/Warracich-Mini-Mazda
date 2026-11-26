@@ -35,6 +35,11 @@ interface BiltyMakerProps {
   settings: AddaSettings;
   lang: Language;
   autoStartWizard?: boolean;
+  externalSubView?: 'list' | 'wizard' | 'preview';
+  onSubViewChange?: (
+    view: 'list' | 'wizard' | 'preview',
+    options?: { replace?: boolean }
+  ) => void;
   onWizardClosed?: () => void;
   onSaveBilty: (
     record: Omit<BiltyRecord, 'id' | 'updatedAt'>,
@@ -60,6 +65,8 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
   settings,
   lang,
   autoStartWizard,
+  externalSubView,
+  onSubViewChange,
   onWizardClosed,
   onSaveBilty,
   onUpdateBilty,
@@ -69,7 +76,9 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
 }) => {
   const t = TRANSLATIONS[lang];
   const [subTab, setSubTab] = useState<'wizard' | 'list' | 'preview'>(
-    autoStartWizard ? 'wizard' : bilties.length > 0 ? 'list' : 'wizard'
+    autoStartWizard
+      ? 'wizard'
+      : externalSubView || (bilties.length > 0 ? 'list' : 'wizard')
   );
   const [editingBilty, setEditingBilty] = useState<BiltyRecord | null>(null);
   const [previewRecord, setPreviewRecord] = useState<BiltyRecord | null>(
@@ -85,6 +94,18 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
       setSubTab('wizard');
     }
   }, [autoStartWizard]);
+
+  useEffect(() => {
+    if (!externalSubView) return;
+    if (externalSubView === 'preview' && !previewRecord) {
+      setSubTab('list');
+    } else {
+      if (externalSubView !== 'wizard') {
+        setEditingBilty(null);
+      }
+      setSubTab(externalSubView);
+    }
+  }, [externalSubView, previewRecord]);
 
   const filteredBilties = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -358,6 +379,7 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
     }
     setEditingBilty(null);
     setSubTab('preview');
+    onSubViewChange?.('preview', { replace: true });
     onWizardClosed?.();
   };
 
@@ -430,6 +452,7 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
               onClick={() => {
                 setEditingBilty(null);
                 setSubTab('wizard');
+                onSubViewChange?.('wizard');
               }}
               className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
                 subTab === 'wizard'
@@ -442,7 +465,10 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setSubTab('list')}
+              onClick={() => {
+                setSubTab('list');
+                onSubViewChange?.('list');
+              }}
               className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
                 subTab === 'list'
                   ? 'bg-white text-slate-900 shadow-xs'
@@ -453,7 +479,10 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setSubTab('preview')}
+              onClick={() => {
+                setSubTab('preview');
+                onSubViewChange?.('preview');
+              }}
               disabled={!previewRecord}
               className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 whitespace-nowrap ${
                 subTab === 'preview'
@@ -482,8 +511,10 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
             lang={lang}
             saveButtonLabel={t.wizardSaveAndPrint}
             onCancel={() => {
+              const next = previewRecord ? 'preview' : 'list';
               setEditingBilty(null);
-              setSubTab(previewRecord ? 'preview' : 'list');
+              setSubTab(next);
+              onSubViewChange?.(next, { replace: true });
               onWizardClosed?.();
             }}
             onSave={handleWizardSave}
@@ -575,6 +606,7 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
                             onClick={() => {
                               setPreviewRecord(b);
                               setSubTab('preview');
+                              onSubViewChange?.('preview');
                             }}
                             title={t.previewBiltyTab}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
@@ -594,6 +626,7 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
                             onClick={() => {
                               setEditingBilty(b);
                               setSubTab('wizard');
+                              onSubViewChange?.('wizard');
                             }}
                             title={t.edit}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"

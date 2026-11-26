@@ -36,6 +36,8 @@ interface RooznamchaProps {
   settings: AddaSettings;
   lang: Language;
   autoStartWizard?: boolean;
+  externalSubView?: 'list' | 'wizard';
+  onSubViewChange?: (view: 'list' | 'wizard', options?: { replace?: boolean }) => void;
   onWizardClosed?: () => void;
   onAddEntry: (entry: Omit<RooznamchaEntry, 'id' | 'updatedAt'>) => void;
   onUpdateEntry: (entry: RooznamchaEntry) => void;
@@ -57,6 +59,8 @@ export const Rooznamcha: React.FC<RooznamchaProps> = ({
   settings,
   lang,
   autoStartWizard,
+  externalSubView,
+  onSubViewChange,
   onWizardClosed,
   onAddEntry,
   onUpdateEntry,
@@ -75,6 +79,15 @@ export const Rooznamcha: React.FC<RooznamchaProps> = ({
       setWizardOpen(true);
     }
   }, [autoStartWizard]);
+
+  useEffect(() => {
+    if (externalSubView === 'list') {
+      setWizardOpen(false);
+      setEditingEntry(null);
+    } else if (externalSubView === 'wizard') {
+      setWizardOpen(true);
+    }
+  }, [externalSubView]);
 
   // Date & filter mode
   const [viewMode, setViewMode] = useState<'single' | 'range'>('single');
@@ -216,6 +229,7 @@ export const Rooznamcha: React.FC<RooznamchaProps> = ({
   const closeWizard = () => {
     setWizardOpen(false);
     setEditingEntry(null);
+    onSubViewChange?.('list', { replace: true });
     onWizardClosed?.();
   };
 
@@ -346,6 +360,7 @@ export const Rooznamcha: React.FC<RooznamchaProps> = ({
               onClick={() => {
                 setEditingEntry(null);
                 setWizardOpen(true);
+                onSubViewChange?.('wizard');
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 whitespace-nowrap"
             >
@@ -524,6 +539,7 @@ export const Rooznamcha: React.FC<RooznamchaProps> = ({
                             onClick={() => {
                               setEditingEntry(entry);
                               setWizardOpen(true);
+                              onSubViewChange?.('wizard');
                             }}
                             title={t.edit}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
