@@ -366,19 +366,13 @@ export async function generateBiltyPdfBlob(
   const rightZoneStart = rightEdge - rightHalfW; // 759px
   const leftHalfW = innerW - rightHalfW - 18; // 731px
 
-  // 1) Top Row above business name: جیوے above right start of وڑائچ, centered 786, رجسٹرڈ above left end of گڈز
+  // 1) Centered 786 alone at top of right panel
   const sloganClean = (st.topSloganUrdu || '').replace(/[·•]/g, ' ').trim();
   const isDefaultSlogan =
     sloganClean.includes('جیوے') && sloganClean.includes('786');
   const brandCenterX = rightZoneStart + rightHalfW / 2;
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = getNastaliqFont(700, 24);
-  ctx.textAlign = 'right';
-  ctx.fillText('جیوے', rightEdge - 4, y + 18);
-  ctx.textAlign = 'left';
-  ctx.fillText('رجسٹرڈ', rightZoneStart + 4, y + 18);
-
   if (isDefaultSlogan || sloganClean.includes('786')) {
     ctx.font = getCleanDataFont(700, 28);
     ctx.direction = 'ltr';
@@ -391,8 +385,8 @@ export async function generateBiltyPdfBlob(
     ctx.fillText(st.topSloganUrdu, brandCenterX, y + 18);
   }
 
-  // 2) Full-Width Business Name (fits entire right panel width directly beneath جیوے ... رجسٹرڈ)
-  const mastheadY = y + 86;
+  // 2) Masthead Row: Small جیوے (right, upper corner of وڑائچ) + Wide Business Name + Small رجسٹرڈ (left, upper corner of گڈز)
+  const mastheadY = y + 90;
   const titleTrimmed = (st.brandTitleUrdu || '').trim();
   const hasSamundriSuffix =
     titleTrimmed.endsWith('سمندری') && titleTrimmed.length > 7;
@@ -401,8 +395,18 @@ export async function generateBiltyPdfBlob(
     : titleTrimmed;
   const citySuffix = hasSamundriSuffix ? 'سمندری' : '';
 
-  const mastheadLeftBound = rightZoneStart + 4;
-  const mastheadRightBound = rightEdge - 4;
+  ctx.fillStyle = '#0f172a';
+  ctx.font = getNastaliqFont(700, 24);
+  const jeewayW = ctx.measureText('جیوے').width;
+  const regW = ctx.measureText('رجسٹرڈ').width;
+
+  ctx.textAlign = 'right';
+  ctx.fillText('جیوے', rightEdge - 4, mastheadY - 22);
+  ctx.textAlign = 'left';
+  ctx.fillText('رجسٹرڈ', rightZoneStart + 4, mastheadY - 22);
+
+  const mastheadLeftBound = rightZoneStart + regW + 18;
+  const mastheadRightBound = rightEdge - jeewayW - 18;
   const mastheadCenterX = (mastheadLeftBound + mastheadRightBound) / 2;
   const targetMastheadW = Math.max(220, mastheadRightBound - mastheadLeftBound);
 
@@ -437,7 +441,7 @@ export async function generateBiltyPdfBlob(
   }
   const stretchX = Math.max(
     0.88,
-    Math.min(1.72, targetMastheadW / Math.max(1, dims.total))
+    Math.min(1.74, targetMastheadW / Math.max(1, dims.total))
   );
   ctx.scale(stretchX, 1);
 
@@ -526,7 +530,7 @@ export async function generateBiltyPdfBlob(
 
   ctx.font = getNastaliqFont(700, 21.5);
   const rawTitleW = Math.max(1, ctx.measureText(st.primaryContactTitle).width);
-  const titleScaleX = Math.max(0.88, Math.min(1.42, (yellowW - 22) / rawTitleW));
+  const titleScaleX = Math.max(0.88, Math.min(1.55, (yellowW - 14) / rawTitleW));
   ctx.save();
   ctx.translate(yellowX + yellowW / 2, y + 19);
   ctx.scale(titleScaleX, 1);
@@ -539,9 +543,9 @@ export async function generateBiltyPdfBlob(
   ctx.direction = 'ltr';
   st.primaryContactPhones.slice(0, 4).forEach((ph, idx) => {
     const py = y + 54 + idx * 36;
-    ctx.font = getCondensedFont(700, 35);
+    ctx.font = getCondensedFont(700, 36);
     const numW = Math.max(1, ctx.measureText(ph).width);
-    const numScaleX = Math.max(0.95, Math.min(1.52, (yellowW - 22) / numW));
+    const numScaleX = Math.max(0.95, Math.min(1.68, (yellowW - 14) / numW));
     ctx.save();
     ctx.translate(yellowX + yellowW / 2, py);
     ctx.scale(numScaleX, 1);
@@ -937,18 +941,18 @@ export async function generateBiltyPdfBlob(
 
   let termFontSize = 14.2;
   let wrappedParagraph = wrapIndentedBoldParagraph(termFontSize);
-  if (wrappedParagraph.length > 4) {
-    termFontSize = 13;
+  while (wrappedParagraph.length > 5 && termFontSize > 11.5) {
+    termFontSize = Number((termFontSize - 0.6).toFixed(1));
     wrappedParagraph = wrapIndentedBoldParagraph(termFontSize);
   }
 
   ctx.fillStyle = '#7f1d1d';
   ctx.font = getNastaliqFont(700, termFontSize);
   ctx.textAlign = 'right';
-  const pLineStep = Math.min(36, Math.floor((footerH - 22) / Math.max(1, wrappedParagraph.length)));
+  const pLineStep = Math.min(34, Math.floor((footerH - 22) / Math.max(1, wrappedParagraph.length)));
   wrappedParagraph.forEach((line, lIdx) => {
     const ty = y + 20 + lIdx * pLineStep;
-    if (ty <= y + footerH - 10) {
+    if (ty <= y + footerH - 8) {
       const rx = lIdx === 0 ? termsContentRight - firstLineIndent : termsContentRight;
       ctx.fillText(line, rx, ty);
     }
