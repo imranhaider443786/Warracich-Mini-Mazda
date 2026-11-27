@@ -1,6 +1,6 @@
 export type Language = 'en' | 'ur';
 
-export type WorkspaceTab = 'dashboard' | 'drivers' | 'bilty' | 'rooznamcha' | 'drive';
+export type WorkspaceTab = 'dashboard' | 'drivers' | 'orders' | 'bilty' | 'rooznamcha' | 'drive';
 
 export type WeightUnit = 'Tons' | 'Mann' | 'Kg';
 
@@ -61,6 +61,20 @@ export interface RooznamchaEntry {
   updatedAt: number;
 }
 
+export interface OrderEntry {
+  id: string;
+  date: string; // YYYY-MM-DD (optional)
+  customerName: string;
+  mobileNumber: string;
+  goodsType: string; // Qisam Maal
+  weight: string; // Wazan
+  pickupLocation: string;
+  dropoffLocation: string;
+  estimateFare: string;
+  notes: string;
+  updatedAt: number;
+}
+
 export interface WhatsAppTemplate {
   id: string;
   nameEn: string;
@@ -109,6 +123,7 @@ export interface SyncMetadata {
 
 export interface LedgerDatabase {
   drivers: DriverEntry[];
+  orders: OrderEntry[];
   bilties: BiltyRecord[];
   rooznamcha: RooznamchaEntry[];
   settings: AddaSettings;

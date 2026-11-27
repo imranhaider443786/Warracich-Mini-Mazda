@@ -3,6 +3,7 @@ import { User } from 'firebase/auth';
 import {
   BookOpen,
   CheckCircle2,
+  ClipboardList,
   Cloud,
   CloudOff,
   FileSpreadsheet,
@@ -21,6 +22,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { Dashboard } from './components/Dashboard';
 import { DriveSettings } from './components/DriveSettings';
 import { DriverRegister } from './components/DriverRegister';
+import { OrderRegister } from './components/OrderRegister';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { Rooznamcha } from './components/Rooznamcha';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
@@ -58,6 +60,7 @@ import {
   DriverEntry,
   Language,
   LedgerDatabase,
+  OrderEntry,
   PdfFolderCategory,
   PendingPdfJob,
   RooznamchaEntry,
@@ -353,6 +356,7 @@ export default function App() {
           version: 1,
           exportedAt: new Date().toISOString(),
           drivers: ledger.drivers,
+          orders: ledger.orders,
           bilties: ledger.bilties,
           rooznamcha: ledger.rooznamcha,
           settings: ledger.settings,
@@ -456,6 +460,7 @@ export default function App() {
     try {
       const isLocalEmpty =
         ledger.drivers.length === 0 &&
+        ledger.orders.length === 0 &&
         ledger.bilties.length === 0 &&
         ledger.rooznamcha.length === 0;
 
@@ -469,6 +474,7 @@ export default function App() {
         const remote = await downloadDriveBackup(result.accessToken, existing.id);
         updateLedger((prev) => ({
           drivers: remote.drivers || [],
+          orders: remote.orders || [],
           bilties: remote.bilties || [],
           rooznamcha: remote.rooznamcha || [],
           settings: {
@@ -541,6 +547,7 @@ export default function App() {
       const remote = await downloadDriveBackup(token, existing.id);
       updateLedger((prev) => ({
         drivers: remote.drivers || [],
+        orders: remote.orders || [],
         bilties: remote.bilties || [],
         rooznamcha: remote.rooznamcha || [],
         settings: {
@@ -690,6 +697,47 @@ export default function App() {
     updateLedger((prev) => ({
       ...prev,
       drivers: prev.drivers.filter((d) => d.id !== id),
+      syncMeta: {
+        ...prev.syncMeta,
+        pendingChanges: prev.syncMeta.pendingChanges + 1,
+        lastLocalEditAt: Date.now(),
+      },
+    }));
+  };
+
+  const handleAddOrder = (entry: Omit<OrderEntry, 'id' | 'updatedAt'>) => {
+    const created: OrderEntry = {
+      ...entry,
+      id: createId('ord'),
+      updatedAt: Date.now(),
+    };
+    updateLedger((prev) => ({
+      ...prev,
+      orders: [created, ...prev.orders],
+      syncMeta: {
+        ...prev.syncMeta,
+        pendingChanges: prev.syncMeta.pendingChanges + 1,
+        lastLocalEditAt: Date.now(),
+      },
+    }));
+  };
+
+  const handleUpdateOrder = (entry: OrderEntry) => {
+    updateLedger((prev) => ({
+      ...prev,
+      orders: prev.orders.map((o) => (o.id === entry.id ? entry : o)),
+      syncMeta: {
+        ...prev.syncMeta,
+        pendingChanges: prev.syncMeta.pendingChanges + 1,
+        lastLocalEditAt: Date.now(),
+      },
+    }));
+  };
+
+  const handleDeleteOrder = (id: string) => {
+    updateLedger((prev) => ({
+      ...prev,
+      orders: prev.orders.filter((o) => o.id !== id),
       syncMeta: {
         ...prev.syncMeta,
         pendingChanges: prev.syncMeta.pendingChanges + 1,
@@ -894,6 +942,7 @@ export default function App() {
   }> = [
     { id: 'dashboard', label: t.navDashboard, icon: <LayoutDashboard className="h-4 w-4" /> },
     { id: 'drivers', label: t.navDrivers, icon: <Truck className="h-4 w-4" /> },
+    { id: 'orders', label: t.navOrders, icon: <ClipboardList className="h-4 w-4" /> },
     { id: 'rooznamcha', label: t.navRooznamcha, icon: <BookOpen className="h-4 w-4" /> },
     { id: 'bilty', label: t.navBilty, icon: <FileSpreadsheet className="h-4 w-4" /> },
     { id: 'drive', label: t.navDrive, icon: <FolderSync className="h-4 w-4" /> },
@@ -1120,6 +1169,7 @@ export default function App() {
                   <Dashboard
                     lang={lang}
                     drivers={ledger.drivers}
+                    orders={ledger.orders}
                     bilties={ledger.bilties}
                     rooznamcha={ledger.rooznamcha}
                     onNavigate={handleDashboardNavigate}
@@ -1139,6 +1189,21 @@ export default function App() {
                     onUpdateDriver={handleUpdateDriver}
                     onDeleteDriver={handleDeleteDriver}
                     onSavePdfToDrive={handleSavePdfToDrive}
+                    onNotify={notify}
+                  />
+                )}
+
+                {activeTab === 'orders' && (
+                  <OrderRegister
+                    orders={ledger.orders}
+                    lang={lang}
+                    autoStartWizard={startWizardTab === 'orders'}
+                    externalSubView={subView === 'wizard' || subView === 'list' ? subView : 'list'}
+                    onSubViewChange={(next, opts) => handleSubViewChange('orders', next, opts)}
+                    onWizardClosed={() => setStartWizardTab(null)}
+                    onAddOrder={handleAddOrder}
+                    onUpdateOrder={handleUpdateOrder}
+                    onDeleteOrder={handleDeleteOrder}
                     onNotify={notify}
                   />
                 )}

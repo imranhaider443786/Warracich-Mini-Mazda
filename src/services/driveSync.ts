@@ -3,6 +3,7 @@ import {
   BiltyRecord,
   DriveFileItem,
   DriverEntry,
+  OrderEntry,
   PdfFolderCategory,
   RooznamchaEntry,
 } from '../types';
@@ -25,6 +26,7 @@ export interface DriveBackupPayload {
   version: number;
   exportedAt: string;
   drivers: DriverEntry[];
+  orders?: OrderEntry[];
   bilties: BiltyRecord[];
   rooznamcha: RooznamchaEntry[];
   settings: AddaSettings;

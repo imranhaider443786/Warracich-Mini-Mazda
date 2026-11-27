@@ -1,5 +1,11 @@
 import { DEFAULT_BILTY_STATIONERY, DEFAULT_SETTINGS } from '../i18n';
-import { BiltyRecord, DriverEntry, LedgerDatabase, PendingPdfJob } from '../types';
+import {
+  BiltyRecord,
+  DriverEntry,
+  LedgerDatabase,
+  OrderEntry,
+  PendingPdfJob,
+} from '../types';
 
 const DB_NAME = 'adda-ledger-pro-db';
 const DB_VERSION = 1;
@@ -10,6 +16,7 @@ const STATE_KEY = 'ledger';
 export function createEmptyDatabase(): LedgerDatabase {
   return {
     drivers: [],
+    orders: [],
     bilties: [],
     rooznamcha: [],
     settings: {
@@ -29,6 +36,21 @@ function normalizeDriver(d: DriverEntry): DriverEntry {
   return {
     ...d,
     weightCapacity: d.weightCapacity !== undefined && d.weightCapacity !== null ? String(d.weightCapacity) : '',
+  };
+}
+
+function normalizeOrder(o: OrderEntry): OrderEntry {
+  return {
+    ...o,
+    date: o.date ? String(o.date) : '',
+    customerName: o.customerName ? String(o.customerName) : '',
+    mobileNumber: o.mobileNumber ? String(o.mobileNumber) : '',
+    goodsType: o.goodsType ? String(o.goodsType) : '',
+    weight: o.weight ? String(o.weight) : '',
+    pickupLocation: o.pickupLocation ? String(o.pickupLocation) : '',
+    dropoffLocation: o.dropoffLocation ? String(o.dropoffLocation) : '',
+    estimateFare: o.estimateFare !== undefined && o.estimateFare !== null ? String(o.estimateFare) : '',
+    notes: o.notes ? String(o.notes) : '',
   };
 }
 
@@ -99,6 +121,7 @@ export async function loadLedgerFromIndexedDb(): Promise<LedgerDatabase> {
 
           resolve({
             drivers: Array.isArray(val.drivers) ? val.drivers.map(normalizeDriver) : [],
+            orders: Array.isArray(val.orders) ? val.orders.map(normalizeOrder) : [],
             bilties: Array.isArray(val.bilties) ? val.bilties.map(normalizeBilty) : [],
             rooznamcha: Array.isArray(val.rooznamcha) ? val.rooznamcha : [],
             settings: {
