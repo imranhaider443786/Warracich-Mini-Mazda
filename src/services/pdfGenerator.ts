@@ -806,15 +806,23 @@ export async function generateBiltyPdfBlob(
   ctx.lineWidth = 2.5;
   ctx.strokeRect(innerX, y, innerW, headerH + bodyH);
 
-  // Realistic Halftone Grayscale Truck Watermark spanning Tafseel Maal & Wazan center boundary
+  // Proportional Halftone Truck Watermark spanning Tadad through Kul Kiraya at 24% opacity
   if (truckCanvas) {
     ctx.save();
-    ctx.globalAlpha = 0.28;
-    const wmSize = Math.min(360, bodyH - 40);
-    const wmCenterX = rightEdge - (120 + 374 + 26);
-    const wmX = wmCenterX - wmSize / 2;
-    const wmY = y + headerH + (bodyH - wmSize) / 2 - 12;
-    ctx.drawImage(truckCanvas, wmX, wmY, wmSize, wmSize);
+    ctx.globalAlpha = 0.24;
+    const spanW = 120 + 374 + 110 + 156; // تعداد + تفصیل مال + وزن + کل کرایہ
+    const aspect = truckCanvas.width / Math.max(1, truckCanvas.height);
+    let drawW = spanW * 0.9;
+    let drawH = drawW / aspect;
+    const maxDrawH = bodyH * 0.86;
+    if (drawH > maxDrawH) {
+      drawH = maxDrawH;
+      drawW = drawH * aspect;
+    }
+    const wmCenterX = rightEdge - spanW / 2;
+    const wmX = wmCenterX - drawW / 2;
+    const wmY = y + headerH + (bodyH - drawH) / 2 - 10;
+    ctx.drawImage(truckCanvas, wmX, wmY, drawW, drawH);
     ctx.restore();
   }
 
@@ -841,8 +849,8 @@ export async function generateBiltyPdfBlob(
       ctx.lineTo(cx - col.w, y + headerH);
       ctx.stroke();
 
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(cx - col.w, y + headerH);
       ctx.lineTo(cx - col.w, y + headerH + bodyH);
@@ -963,18 +971,18 @@ export async function generateBiltyPdfBlob(
 
   // 1. Upper Designation Banner (مرکزی صدر)
   ctx.fillStyle = '#0f172a';
-  ctx.fillRect(innerX + 10, footerY + 8, patronW - 20, 28);
+  ctx.fillRect(innerX + 10, footerY + 8, patronW - 20, 26);
   ctx.fillStyle = '#ffffff';
-  ctx.font = getNastaliqFont(700, 16.5);
+  ctx.font = getNastaliqFont(700, 16);
   ctx.textAlign = 'center';
-  ctx.fillText(st.patronLabelUrdu, pCenter, footerY + 22);
+  ctx.fillText(st.patronLabelUrdu, pCenter, footerY + 21);
 
-  // 2. Primary Name (شہزاد حیدر وڑائچ) — Largest, red with crisp white outline, fitted to width
+  // 2. Primary Name (شہزاد حیدر وڑائچ) — Unclipped, red with crisp white outline, fitted to width
   ctx.font = getNastaliqFont(700, 31);
   const rawNameW = Math.max(1, ctx.measureText(st.patronNameUrdu).width);
   const nameScaleX = Math.max(0.75, Math.min(1.5, (usablePatronW * 0.96) / rawNameW));
   ctx.save();
-  ctx.translate(pCenter, footerY + 63);
+  ctx.translate(pCenter, footerY + 62);
   ctx.scale(nameScaleX, 1);
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 4.2;
@@ -984,30 +992,20 @@ export async function generateBiltyPdfBlob(
   ctx.fillText(st.patronNameUrdu, 0, 0);
   ctx.restore();
 
-  // 3. Union Name (2 lines, smaller than Name above)
+  // 3. Union Name (Single horizontal auto-fitted line, smaller than Name above)
   ctx.fillStyle = '#0f172a';
-  const explicitUnionLines = (st.patronDesignationUrdu || '')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const unionLines =
-    explicitUnionLines.length > 1
-      ? explicitUnionLines.slice(0, 2)
-      : wrapTextLines(ctx, st.patronDesignationUrdu || '', usablePatronW, 2);
-
-  unionLines.forEach((ul, ui) => {
-    ctx.font = getNastaliqFont(700, 15.5);
-    const rawLineW = Math.max(1, ctx.measureText(ul).width);
-    const lineScaleX =
-      rawLineW > usablePatronW * 0.96
-        ? Math.max(0.6, (usablePatronW * 0.96) / rawLineW)
-        : 1;
-    ctx.save();
-    ctx.translate(pCenter, footerY + 100 + ui * 23);
-    if (lineScaleX !== 1) ctx.scale(lineScaleX, 1);
-    ctx.fillText(ul, 0, 0);
-    ctx.restore();
-  });
+  const unionText = (st.patronDesignationUrdu || '').replace(/\s*\n\s*/g, ' ').trim();
+  ctx.font = getNastaliqFont(700, 15.5);
+  const rawUnionW = Math.max(1, ctx.measureText(unionText).width);
+  const unionScaleX =
+    rawUnionW > usablePatronW * 0.96
+      ? Math.max(0.5, (usablePatronW * 0.96) / rawUnionW)
+      : 1;
+  ctx.save();
+  ctx.translate(pCenter, footerY + 105);
+  if (unionScaleX !== 1) ctx.scale(unionScaleX, 1);
+  ctx.fillText(unionText, 0, 0);
+  ctx.restore();
 
   // 4. Mobile Number (0300-7689443) — Bold dark, fitted across box width
   ctx.fillStyle = '#0f172a';
@@ -1016,7 +1014,7 @@ export async function generateBiltyPdfBlob(
   const rawPhoneW = Math.max(1, ctx.measureText(st.patronPhone).width);
   const phoneScaleX = Math.max(0.85, Math.min(1.75, (usablePatronW * 0.96) / rawPhoneW));
   ctx.save();
-  ctx.translate(pCenter, footerY + 162);
+  ctx.translate(pCenter, footerY + 150);
   ctx.scale(phoneScaleX, 1);
   ctx.fillText(st.patronPhone, 0, 0);
   ctx.restore();
@@ -1027,7 +1025,7 @@ export async function generateBiltyPdfBlob(
   ctx.font = getNastaliqFont(700, 13.8);
   const noteLines = wrapTextLines(ctx, st.patronNoteUrdu, usablePatronW, 2);
   noteLines.forEach((nl, ni) => {
-    ctx.fillText(nl, pCenter, footerY + 195 + ni * 20);
+    ctx.fillText(nl, pCenter, footerY + 188 + ni * 20);
   });
 
   return canvasesToPdfBlob([canvas], 'portrait', 'NONE');

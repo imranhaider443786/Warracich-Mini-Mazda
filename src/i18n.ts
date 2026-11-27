@@ -47,7 +47,7 @@ export const DEFAULT_BILTY_STATIONERY = {
   secondaryContactPhones: ['0302-7048424', '0344-1776440'],
   patronLabelUrdu: 'مرکزی صدر',
   patronNameUrdu: 'شہزاد حیدر وڑائچ',
-  patronDesignationUrdu: 'پنجاب مزدا اونرز ایسوسی ایشن\nپنجاب رجسٹرڈ',
+  patronDesignationUrdu: 'پنجاب مزدا اونرز ایسوسی ایشن پنجاب رجسٹرڈ',
   patronPhone: '0300-7689443',
   patronNoteUrdu: 'سروس سے متعلق کسی بھی قسم کی شکایت کی صورت میں رابطہ کریں۔',
   mottoUrdu: 'وقت کی پابندی ہمارا نصب العین ہے ☆ دستخط منیجر',

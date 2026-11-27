@@ -33,7 +33,8 @@ export function migrateStationerySettings(
   const rawPatronDesig = savedStationery?.patronDesignationUrdu?.trim() || '';
   const migratedPatronDesig =
     !rawPatronDesig ||
-    rawPatronDesig === 'صدر پاکستان منی مزدا گڈز ایسوسی ایشن لاہور'
+    rawPatronDesig === 'صدر پاکستان منی مزدا گڈز ایسوسی ایشن لاہور' ||
+    rawPatronDesig === 'پنجاب مزدا اونرز ایسوسی ایشن\nپنجاب رجسٹرڈ'
       ? DEFAULT_BILTY_STATIONERY.patronDesignationUrdu
       : savedStationery!.patronDesignationUrdu!;
 

@@ -49,7 +49,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
   const termLineRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const patronBoxRef = useRef<HTMLDivElement | null>(null);
   const patronNameRef = useRef<HTMLSpanElement | null>(null);
-  const patronUnionLineRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const patronUnionRef = useRef<HTMLSpanElement | null>(null);
   const patronPhoneRef = useRef<HTMLSpanElement | null>(null);
 
   const [scale, setScale] = useState(1);
@@ -58,15 +58,14 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
   const [imranNumScaleX, setImranNumScaleX] = useState(1.1);
   const [termLineScales, setTermLineScales] = useState<number[]>([]);
   const [patronNameScaleX, setPatronNameScaleX] = useState(1);
-  const [patronUnionScales, setPatronUnionScales] = useState<number[]>([1, 1]);
+  const [patronUnionScaleX, setPatronUnionScaleX] = useState(1);
   const [patronPhoneScaleX, setPatronPhoneScaleX] = useState(1);
   const [truckUrl, setTruckUrl] = useState<string>(TRUCK_WATERMARK_URL);
 
   const st = settings.biltyStationery;
-  const patronUnionLines = (st.patronDesignationUrdu || '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const patronUnionText = (st.patronDesignationUrdu || '')
+    .replace(/\s*\n\s*/g, ' ')
+    .trim();
 
   useEffect(() => {
     let active = true;
@@ -151,21 +150,16 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
         const pName = patronNameRef.current;
         if (pName && pName.scrollWidth > 0) {
           setPatronNameScaleX(
-            Math.max(0.75, Math.min(1.75, (usablePatronW * 0.96) / pName.scrollWidth))
+            Math.max(0.75, Math.min(1.65, (usablePatronW * 0.96) / pName.scrollWidth))
           );
         }
 
-        const unionCount = (st.patronDesignationUrdu || '')
-          .split('\n')
-          .map((l) => l.trim())
-          .filter(Boolean).length;
-        const nextUnionScales = Array.from({ length: unionCount }, (_, idx) => {
-          const uEl = patronUnionLineRefs.current[idx];
-          if (!uEl || uEl.scrollWidth <= 0) return 1;
-          if (uEl.scrollWidth <= usablePatronW * 0.97) return 1;
-          return Math.max(0.6, (usablePatronW * 0.97) / uEl.scrollWidth);
-        });
-        setPatronUnionScales(nextUnionScales);
+        const pUnion = patronUnionRef.current;
+        if (pUnion && pUnion.scrollWidth > 0) {
+          setPatronUnionScaleX(
+            Math.max(0.5, Math.min(1.1, (usablePatronW * 0.97) / pUnion.scrollWidth))
+          );
+        }
 
         const pPhone = patronPhoneRef.current;
         if (pPhone && pPhone.scrollWidth > 0) {
@@ -493,15 +487,15 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
 
         {/* Full-Height 6-Column Consignment / Freight Table Filling Remaining A4 Portrait Space */}
         <div className="relative mt-2 flex-1 min-h-0 overflow-hidden border-[1.5px] border-slate-900">
-          {/* Alpha-transparent halftone truck watermark centered over Tafseel Maal & Wazan boundary */}
+          {/* Proportional halftone truck watermark spanning Tadad through Kul Kiraya without stretching */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute top-10 right-[41%] bottom-4 z-0 flex translate-x-1/2 items-center justify-center"
+            className="pointer-events-none absolute top-10 right-0 bottom-3 z-0 flex w-[63%] items-center justify-center px-3"
           >
             <img
               src={truckUrl}
               alt=""
-              className="h-[240px] w-auto object-contain opacity-[0.32] select-none"
+              className="max-h-[88%] w-[90%] max-w-full h-auto object-contain opacity-[0.24] select-none"
             />
           </div>
 
@@ -554,25 +548,22 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
                 <td className="border-e border-slate-800 px-1.5 pt-4 pb-3 font-sans text-sm font-bold text-slate-900">
                   {bilty.weight || ''}
                 </td>
-                <td
-                  className="border-e border-slate-800 px-1.5 pt-4 pb-3 font-mono text-[15px] font-bold text-slate-900 tabular-nums"
-                  dir="ltr"
-                >
-                  {totalFreight > 0 ? totalFreight.toLocaleString('en-PK') : ''}
+                <td className="border-e border-slate-800 px-1.5 pt-4 pb-3 font-mono text-[15px] font-bold text-slate-900 tabular-nums">
+                  <span dir="ltr" className="inline-block">
+                    {totalFreight > 0 ? totalFreight.toLocaleString('en-PK') : ''}
+                  </span>
                 </td>
-                <td
-                  className="border-e border-slate-800 px-1.5 pt-4 pb-3 font-mono text-[15px] font-bold text-slate-900 tabular-nums"
-                  dir="ltr"
-                >
-                  {advanceVal > 0 ? advanceVal.toLocaleString('en-PK') : ''}
+                <td className="border-e border-slate-800 px-1.5 pt-4 pb-3 font-mono text-[15px] font-bold text-slate-900 tabular-nums">
+                  <span dir="ltr" className="inline-block">
+                    {advanceVal > 0 ? advanceVal.toLocaleString('en-PK') : ''}
+                  </span>
                 </td>
-                <td
-                  className="px-1.5 pt-4 pb-3 font-mono text-lg font-extrabold text-slate-900 tabular-nums"
-                  dir="ltr"
-                >
-                  {totalFreight > 0 || payable > 0
-                    ? payable.toLocaleString('en-PK')
-                    : ''}
+                <td className="px-1.5 pt-4 pb-3 font-mono text-lg font-extrabold text-slate-900 tabular-nums">
+                  <span dir="ltr" className="inline-block">
+                    {totalFreight > 0 || payable > 0
+                      ? payable.toLocaleString('en-PK')
+                      : ''}
+                  </span>
                 </td>
               </tr>
             </tbody>
@@ -606,52 +597,44 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
 
           <div
             ref={patronBoxRef}
-            className="flex flex-col justify-between overflow-hidden border-[1.5px] border-slate-700 bg-[#fef3c7] px-2 py-1.5 text-center"
+            className="flex flex-col justify-between border-[1.5px] border-slate-700 bg-[#fef3c7] px-2 py-1 text-center"
           >
             {/* Upper Designation: مرکزی صدر */}
-            <div className="font-nastaliq w-full rounded-xs bg-slate-900 px-2 py-0.5 text-[12px] font-bold leading-[1.45] text-white">
+            <div className="font-nastaliq w-full rounded-xs bg-slate-900 px-2 py-[1px] text-[11px] font-bold leading-[1.35] text-white">
               {st.patronLabelUrdu}
             </div>
 
-            {/* Name (Larger, Red Outlined): شہزاد حیدر وڑائچ */}
-            <div className="flex items-center justify-center overflow-hidden pt-0.5">
+            {/* Name (Unclipped Vertically, Red Outlined): شہزاد حیدر وڑائچ */}
+            <div className="flex items-center justify-center overflow-x-clip overflow-y-visible py-0.5">
               <span
                 ref={patronNameRef}
-                className="font-nastaliq inline-block origin-center whitespace-nowrap font-bold leading-[1.35]"
+                className="font-nastaliq inline-block origin-center whitespace-nowrap font-bold leading-[1.6]"
                 style={{ transform: `scaleX(${patronNameScaleX})` }}
               >
                 <DualOutlineUrdu
                   text={st.patronNameUrdu}
-                  sizeClass="text-[22px]"
+                  sizeClass="text-[21px]"
                   frontColorClass="text-[#dc2626]"
                 />
               </span>
             </div>
 
-            {/* Union Name (Smaller than Name, 2 Lines) */}
-            <div className="flex flex-col items-center justify-center">
-              {patronUnionLines.map((line, idx) => (
-                <div key={idx} className="w-full overflow-hidden text-center">
-                  <span
-                    ref={(el) => {
-                      patronUnionLineRefs.current[idx] = el;
-                    }}
-                    className="font-nastaliq inline-block origin-center whitespace-nowrap text-[11px] font-bold leading-[1.48] text-slate-900"
-                    style={{
-                      transform: `scaleX(${patronUnionScales[idx] ?? 1})`,
-                    }}
-                  >
-                    {line}
-                  </span>
-                </div>
-              ))}
+            {/* Union Name (1 Auto-Fitted Line, Smaller than Name) */}
+            <div className="w-full overflow-x-clip overflow-y-visible text-center">
+              <span
+                ref={patronUnionRef}
+                className="font-nastaliq inline-block origin-center whitespace-nowrap text-[10.5px] font-bold leading-[1.5] text-slate-900"
+                style={{ transform: `scaleX(${patronUnionScaleX})` }}
+              >
+                {patronUnionText}
+              </span>
             </div>
 
             {/* Mobile Number (Edge-Fitted Condensed Bold) */}
-            <div className="flex items-center justify-center overflow-hidden">
+            <div className="flex items-center justify-center overflow-x-clip overflow-y-visible">
               <span
                 ref={patronPhoneRef}
-                className="font-condensed inline-block origin-center whitespace-nowrap text-[27px] font-bold leading-[0.95] tracking-tight text-slate-900 tabular-nums"
+                className="font-condensed inline-block origin-center whitespace-nowrap text-[25px] font-bold leading-[0.95] tracking-tight text-slate-900 tabular-nums"
                 dir="ltr"
                 style={{ transform: `scaleX(${patronPhoneScaleX})` }}
               >
@@ -660,7 +643,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
             </div>
 
             {/* Bottom Complaint Note */}
-            <div className="font-nastaliq text-[9.5px] font-bold leading-[1.42] text-slate-900">
+            <div className="font-nastaliq text-[9px] font-bold leading-[1.38] text-slate-900">
               {st.patronNoteUrdu}
             </div>
           </div>
