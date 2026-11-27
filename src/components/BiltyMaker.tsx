@@ -413,7 +413,7 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
       (record.gariNumber ? `گاڑی نمبر: ${record.gariNumber}\n` : '') +
       (record.driverName || record.driverPhone ? `ڈرائیور: ${record.driverName} ${record.driverPhone}\n` : '') +
       (record.senderName ? `بھیجنے والا: ${record.senderName} ${record.senderPhone}\n` : '') +
-      (record.receiverName ? `لینے والا: ${record.receiverName} ${record.receiverPhone}\n` : '') +
+      (record.receiverName ? `وصول کرنے والا: ${record.receiverName} ${record.receiverPhone}\n` : '') +
       (record.packagesCount ? `تعداد: ${record.packagesCount}\n` : '') +
       (record.goodsDescription ? `تفصیل مال: ${record.goodsDescription}\n` : '') +
       (record.weight ? `وزن: ${record.weight}\n` : '') +
