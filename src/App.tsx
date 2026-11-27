@@ -949,12 +949,50 @@ export default function App() {
     { id: 'drive', label: t.navDrive, icon: <FolderSync className="h-4 w-4" /> },
   ];
 
+  const bottomNavItems: Array<{
+    id: WorkspaceTab;
+    label: string;
+    shortLabel: string;
+    icon: React.ReactNode;
+  }> = [
+    {
+      id: 'dashboard',
+      label: t.navDashboard,
+      shortLabel: t.navShortDashboard,
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      id: 'drivers',
+      label: t.navDrivers,
+      shortLabel: t.navShortDrivers,
+      icon: <Truck className="h-5 w-5" />,
+    },
+    {
+      id: 'orders',
+      label: t.navOrders,
+      shortLabel: t.navShortOrders,
+      icon: <ClipboardList className="h-5 w-5" />,
+    },
+    {
+      id: 'rooznamcha',
+      label: t.navRooznamcha,
+      shortLabel: t.navShortRooznamcha,
+      icon: <BookOpen className="h-5 w-5" />,
+    },
+    {
+      id: 'bilty',
+      label: t.navBilty,
+      shortLabel: t.navShortBilty,
+      icon: <FileSpreadsheet className="h-5 w-5" />,
+    },
+  ];
+
   const activeNavTitle =
     navItems.find((item) => item.id === activeTab)?.label || t.appTitle;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 print:min-h-0 print:bg-white">
-      <div className="flex min-h-screen print:block print:min-h-0">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-clip bg-slate-50 text-slate-900 print:min-h-0 print:overflow-visible print:bg-white">
+      <div className="flex min-h-[100dvh] w-full min-w-0 print:block print:min-h-0">
         {/* Desktop Sidebar */}
         <aside className="no-print hidden w-64 shrink-0 flex-col border-e border-slate-200 bg-white lg:flex">
           <button
@@ -1023,25 +1061,26 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Mobile Drawer */}
+        {/* Mobile More Drawer */}
         {mobileMenuOpen && (
-          <div className="no-print fixed inset-0 z-40 flex lg:hidden">
+          <div className="no-print fixed inset-0 z-50 flex lg:hidden">
             <div
-              className="fixed inset-0 bg-slate-900/40"
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-[1px]"
               onClick={handleCloseMobileMenu}
             />
-            <aside className="relative z-50 flex w-64 flex-col bg-white shadow-xl">
-              <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5">
-                <span className="text-base font-bold text-slate-900">{t.appTitle}</span>
+            <aside className="relative z-10 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl pb-safe">
+              <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
+                <span className="truncate text-base font-bold text-slate-900">{t.appTitle}</span>
                 <button
                   type="button"
                   onClick={handleCloseMobileMenu}
-                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+                  aria-label="Close"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <nav className="flex-1 space-y-1 p-3">
+              <nav className="flex-1 space-y-1 overflow-y-auto p-3">
                 {navItems.map((item) => (
                   <button
                     key={item.id}
@@ -1049,18 +1088,45 @@ export default function App() {
                     onClick={() => {
                       handleDashboardNavigate(item.id, false);
                     }}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold ${
+                    className={`flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors ${
                       activeTab === item.id
                         ? 'bg-blue-900 text-white'
                         : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     {item.icon}
-                    <span>{item.label}</span>
+                    <span className="truncate">{item.label}</span>
                   </button>
                 ))}
               </nav>
-              <div className="border-t border-slate-200 p-4">
+              <div className="space-y-3 border-t border-slate-200 p-4">
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                      {isOnline ? (
+                        <Wifi className="h-3.5 w-3.5 text-emerald-600" />
+                      ) : (
+                        <WifiOff className="h-3.5 w-3.5 text-amber-600" />
+                      )}
+                      {isOnline ? t.onlineStatus : t.offlineStatus}
+                    </span>
+                    {totalPendingCount > 0 && (
+                      <span className="font-mono font-semibold text-amber-700 tabular-nums">
+                        {totalPendingCount} {t.pendingChangesLabel}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-500">
+                    {hasToken ? (
+                      <Cloud className="h-3.5 w-3.5 shrink-0 text-blue-800" />
+                    ) : (
+                      <CloudOff className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    )}
+                    <span className="truncate">
+                      {hasToken && user?.email ? user.email : t.signInGoogle}
+                    </span>
+                  </div>
+                </div>
                 <PWAInstallButton lang={lang} />
               </div>
             </aside>
@@ -1069,40 +1135,42 @@ export default function App() {
 
         {/* Main Viewport */}
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Single-row Top Bar */}
-          <header className="no-print sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">
-            <div className="flex min-w-0 items-center gap-3">
+          {/* Compact Single-Row Top Bar (48px on mobile, 64px on desktop) */}
+          <header className="no-print sticky top-0 z-30 flex h-12 items-center justify-between gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur-md sm:h-14 sm:px-6 lg:h-16 lg:gap-4">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={handleOpenMobileMenu}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 lg:hidden"
-                aria-label="Menu"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 lg:hidden"
+                aria-label={t.moreMenuLabel}
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
-              <div className="flex items-center gap-2 truncate text-sm font-semibold text-slate-800">
+              <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-800">
                 <button
                   type="button"
                   onClick={() => handleDashboardNavigate('dashboard', false)}
-                  className="hidden text-slate-500 hover:text-slate-900 sm:inline"
+                  className="hidden shrink-0 text-slate-500 hover:text-slate-900 sm:inline"
                 >
                   {lang === 'ur' ? ledger.settings.addaNameUrdu : ledger.settings.addaName}
                 </button>
                 <span className="hidden text-slate-300 sm:inline" aria-hidden="true">
                   /
                 </span>
-                <span className="truncate text-slate-900">{activeNavTitle}</span>
+                <span className="truncate text-sm font-bold text-slate-900 sm:font-semibold">
+                  {activeNavTitle}
+                </span>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2.5">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
               <button
                 type="button"
                 onClick={() => setLang((prev) => (prev === 'en' ? 'ur' : 'en'))}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 transition-colors hover:bg-slate-50 whitespace-nowrap"
+                className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800 transition-colors hover:bg-slate-50 whitespace-nowrap sm:h-9 sm:gap-1.5 sm:px-3"
               >
                 <Languages className="h-3.5 w-3.5 text-blue-900" />
-                <span>{lang === 'en' ? 'اردو' : 'English'}</span>
+                <span>{lang === 'en' ? 'اردو' : 'EN'}</span>
               </button>
 
               {hasToken ? (
@@ -1110,10 +1178,17 @@ export default function App() {
                   type="button"
                   disabled={!isOnline || isSyncing}
                   onClick={() => handleSyncToDrive(false)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-800 disabled:opacity-50 whitespace-nowrap"
+                  className="inline-flex h-8 items-center gap-1 rounded-lg bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-800 disabled:opacity-50 whitespace-nowrap sm:h-9 sm:gap-1.5 sm:px-3.5"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>
+                  <span className="sm:hidden">
+                    {isSyncing
+                      ? '...'
+                      : totalPendingCount > 0
+                        ? `${t.syncShort} (${totalPendingCount})`
+                        : t.syncShort}
+                  </span>
+                  <span className="hidden sm:inline">
                     {isSyncing
                       ? t.syncing
                       : totalPendingCount > 0
@@ -1126,38 +1201,43 @@ export default function App() {
                   type="button"
                   disabled={!isOnline}
                   onClick={handleGoogleLogin}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-800 disabled:opacity-50 whitespace-nowrap"
+                  className="inline-flex h-8 items-center gap-1 rounded-lg bg-blue-900 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-800 disabled:opacity-50 whitespace-nowrap sm:h-9 sm:gap-1.5 sm:px-3.5"
                 >
                   <Cloud className="h-3.5 w-3.5" />
-                  <span>{totalPendingCount > 0 ? t.authNeededBtn : t.signInGoogle}</span>
+                  <span className="sm:hidden">
+                    {totalPendingCount > 0 ? `${t.syncShort} (${totalPendingCount})` : t.signInShort}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {totalPendingCount > 0 ? t.authNeededBtn : t.signInGoogle}
+                  </span>
                 </button>
               )}
             </div>
           </header>
 
           {!isOnline && (
-            <div className="no-print border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-900 sm:px-6">
+            <div className="no-print border-b border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-900 sm:px-6 sm:py-2.5 sm:text-xs">
               <div className="flex items-center gap-2">
-                <WifiOff className="h-4 w-4 shrink-0 text-amber-700" />
-                <span>{t.offlineBanner}</span>
+                <WifiOff className="h-3.5 w-3.5 shrink-0 text-amber-700 sm:h-4 sm:w-4" />
+                <span className="min-w-0 leading-snug">{t.offlineBanner}</span>
               </div>
             </div>
           )}
 
           {isOnline && !hasToken && totalPendingCount > 0 && (
-            <div className="no-print flex flex-wrap items-center justify-between gap-3 border-b border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-medium text-blue-950 sm:px-6">
-              <span>{t.backOnlineAuthPrompt}</span>
+            <div className="no-print flex flex-wrap items-center justify-between gap-2 border-b border-blue-200 bg-blue-50 px-3 py-2 text-[11px] font-medium text-blue-950 sm:gap-3 sm:px-6 sm:py-2.5 sm:text-xs">
+              <span className="min-w-0 flex-1 leading-snug">{t.backOnlineAuthPrompt}</span>
               <button
                 type="button"
                 onClick={handleGoogleLogin}
-                className="rounded-md bg-blue-900 px-3 py-1 font-semibold text-white hover:bg-blue-800"
+                className="shrink-0 rounded-md bg-blue-900 px-3 py-1.5 font-semibold text-white hover:bg-blue-800"
               >
-                {t.signInGoogle}
+                {t.signInShort}
               </button>
             </div>
           )}
 
-          <main className="print-main-reset mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
+          <main className="print-main-reset mx-auto w-full min-w-0 max-w-6xl flex-1 px-3 py-3 pb-24 sm:p-6 lg:pb-6">
             {!dbReady ? (
               <div className="space-y-4">
                 <div className="h-10 w-64 animate-pulse rounded-lg bg-slate-200" />
@@ -1298,7 +1378,40 @@ export default function App() {
         }}
       />
 
-      <div className="no-print fixed bottom-4 end-4 z-50 flex flex-col gap-2">
+      {/* Mobile Fixed Bottom Navigation Bar (56px + safe inset) */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-md pb-safe lg:hidden"
+      >
+        <div className="grid h-14 grid-cols-5 items-stretch">
+          {bottomNavItems.map((item) => {
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleDashboardNavigate(item.id, false)}
+                className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 transition-colors ${
+                  active ? 'text-blue-900' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                {active && (
+                  <span
+                    className="absolute top-0 inset-x-3 h-0.5 rounded-b-full bg-blue-900"
+                    aria-hidden="true"
+                  />
+                )}
+                {item.icon}
+                <span className="max-w-full truncate text-[10px] font-semibold tracking-tight">
+                  {item.shortLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className="no-print fixed bottom-20 inset-x-3 z-50 flex flex-col gap-2 sm:inset-x-auto sm:bottom-4 sm:end-4 lg:bottom-4">
         {toasts.map((toast) => (
           <div
             key={toast.id}
@@ -1311,7 +1424,7 @@ export default function App() {
             }`}
           >
             <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>{toast.text}</span>
+            <span className="min-w-0 break-words">{toast.text}</span>
           </div>
         ))}
       </div>

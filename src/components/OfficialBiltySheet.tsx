@@ -8,6 +8,7 @@ import { AddaSettings, BiltyRecord } from '../types';
 interface OfficialBiltySheetProps {
   bilty: BiltyRecord;
   settings: AddaSettings;
+  zoomed?: boolean;
 }
 
 const SHEET_WIDTH = 794; // 210mm @ 96 DPI (A4 Portrait width)
@@ -38,6 +39,7 @@ const DualOutlineUrdu: React.FC<{
 export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
   bilty,
   settings,
+  zoomed = false,
 }) => {
   const scalerRef = useRef<HTMLDivElement | null>(null);
   const mastheadBoxRef = useRef<HTMLDivElement | null>(null);
@@ -220,23 +222,36 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
   const isDefaultSlogan =
     sloganClean.includes('جیوے') && sloganClean.includes('786');
 
+  const activeScale = zoomed ? 1 : scale;
+
   return (
     <div
-      ref={scalerRef}
-      dir="ltr"
-      className="print-sheet-scaler relative mx-auto w-full max-w-[794px] overflow-hidden rounded-lg border border-slate-200 bg-slate-100/60 shadow-xs print:max-w-none print:rounded-none print:border-0 print:bg-white print:shadow-none"
-      style={{ height: `${Math.round(SHEET_HEIGHT * scale)}px` }}
+      className={
+        zoomed
+          ? 'w-full max-w-full overflow-auto rounded-lg border border-slate-200 bg-slate-100/60 shadow-xs print:overflow-visible print:rounded-none print:border-0 print:bg-white print:shadow-none'
+          : 'w-full max-w-full'
+      }
     >
       <div
-        dir="rtl"
-        className="print-surface absolute top-0 left-1/2 flex flex-col bg-white px-3 pt-2.5 pb-2.5 text-slate-900"
-        style={{
-          width: `${SHEET_WIDTH}px`,
-          height: `${SHEET_HEIGHT}px`,
-          transform: `translateX(-50%) scale(${scale})`,
-          transformOrigin: 'top center',
-        }}
+        ref={scalerRef}
+        dir="ltr"
+        className={`print-sheet-scaler relative mx-auto overflow-hidden print:w-full print:max-w-none print:rounded-none print:border-0 print:bg-white print:shadow-none ${
+          zoomed
+            ? 'w-[794px]'
+            : 'w-full max-w-[794px] rounded-lg border border-slate-200 bg-slate-100/60 shadow-xs'
+        }`}
+        style={{ height: `${Math.round(SHEET_HEIGHT * activeScale)}px` }}
       >
+        <div
+          dir="rtl"
+          className="print-surface absolute top-0 left-1/2 flex flex-col bg-white px-3 pt-2.5 pb-2.5 text-slate-900"
+          style={{
+            width: `${SHEET_WIDTH}px`,
+            height: `${SHEET_HEIGHT}px`,
+            transform: `translateX(-50%) scale(${activeScale})`,
+            transformOrigin: 'top center',
+          }}
+        >
         {/* Top Stationery Banner (Same Side-by-Side Placement Scaled Cleanly for A4 Portrait) */}
         <div className="grid grid-cols-12 items-stretch gap-2 pb-1">
           {/* Right Side: Centered 786 Alone, Masthead with جیوے & رجسٹرڈ Flanking Business Name, Deduplicated Subtitle */}
@@ -649,6 +664,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };

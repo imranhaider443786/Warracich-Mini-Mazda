@@ -5,12 +5,15 @@ import {
   Eye,
   FileText,
   MessageSquare,
+  MoreHorizontal,
   Pencil,
   Plus,
   Printer,
   Search,
   Trash2,
   UploadCloud,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import {
   formatCurrencyPKR,
@@ -26,6 +29,7 @@ import {
 } from '../types';
 import { downloadBlobLocally, generateBiltyPdfBlob } from '../services/pdfGenerator';
 import { ConfirmModal } from './ConfirmModal';
+import { MobileBottomSheet } from './MobileBottomSheet';
 import { OfficialBiltySheet } from './OfficialBiltySheet';
 import { StepEntryWizard, WizardStepConfig } from './StepEntryWizard';
 
@@ -87,6 +91,8 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<BiltyRecord | null>(null);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [previewZoomed, setPreviewZoomed] = useState(false);
 
   useEffect(() => {
     if (autoStartWizard) {
@@ -259,27 +265,33 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
           const adv = Number(vals.advancePaid) || 0;
           const net = Math.max(0, total - adv);
           return (
-            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4">
+            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 sm:p-4">
               <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-blue-900">
                 <Calculator className="h-4 w-4" />
                 <span>{t.kirayaCalculatorLabel}</span>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-lg bg-white p-2.5 border border-slate-200">
-                  <div className="text-[11px] text-slate-500">{t.kirayaLabel}</div>
-                  <div className="mt-0.5 font-mono text-sm font-bold text-slate-900 tabular-nums">
+              <div className="grid grid-cols-3 gap-1.5 text-center sm:gap-3">
+                <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-2 sm:p-2.5">
+                  <div className="truncate text-[10px] text-slate-500 sm:text-[11px]">
+                    {t.kirayaLabel}
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-xs font-bold text-slate-900 tabular-nums sm:text-sm">
                     {formatCurrencyPKR(total)}
                   </div>
                 </div>
-                <div className="rounded-lg bg-white p-2.5 border border-slate-200">
-                  <div className="text-[11px] text-slate-500">{t.advanceLabel}</div>
-                  <div className="mt-0.5 font-mono text-sm font-bold text-amber-700 tabular-nums">
+                <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-2 sm:p-2.5">
+                  <div className="truncate text-[10px] text-slate-500 sm:text-[11px]">
+                    {t.advanceLabel}
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-xs font-bold text-amber-700 tabular-nums sm:text-sm">
                     - {formatCurrencyPKR(adv)}
                   </div>
                 </div>
-                <div className="rounded-lg bg-blue-900 p-2.5 text-white">
-                  <div className="text-[11px] text-blue-100">{t.balanceDue}</div>
-                  <div className="mt-0.5 font-mono text-sm font-bold tabular-nums">
+                <div className="min-w-0 rounded-lg bg-blue-900 p-2 text-white sm:p-2.5">
+                  <div className="truncate text-[10px] text-blue-100 sm:text-[11px]">
+                    {t.balanceDue}
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-xs font-bold tabular-nums sm:text-sm">
                     {formatCurrencyPKR(net)}
                   </div>
                 </div>
@@ -436,17 +448,17 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="no-print flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="no-print flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             {t.biltyPageTitle}
           </h1>
-          <p className="mt-1 text-sm text-slate-600">{t.biltyPageSub}</p>
+          <p className="mt-1 hidden text-sm text-slate-600 sm:block">{t.biltyPageSub}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
+        <div className="w-full sm:w-auto">
+          <div className="grid w-full grid-cols-3 gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 sm:inline-flex sm:w-auto">
             <button
               type="button"
               onClick={() => {
@@ -454,14 +466,15 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
                 setSubTab('wizard');
                 onSubViewChange?.('wizard');
               }}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
+              className={`inline-flex min-h-[38px] items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap sm:px-3.5 ${
                 subTab === 'wizard'
                   ? 'bg-blue-900 text-white shadow-xs'
                   : 'text-slate-700 hover:text-slate-900'
               }`}
             >
-              <Plus className="h-3.5 w-3.5" />
-              <span>{t.newBiltyBtn}</span>
+              <Plus className="hidden h-3.5 w-3.5 sm:inline" />
+              <span className="truncate sm:hidden">{t.newBiltyShort}</span>
+              <span className="hidden sm:inline">{t.newBiltyBtn}</span>
             </button>
             <button
               type="button"
@@ -469,13 +482,18 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
                 setSubTab('list');
                 onSubViewChange?.('list');
               }}
-              className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap ${
+              className={`inline-flex min-h-[38px] items-center justify-center rounded-md px-2 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap sm:px-3.5 ${
                 subTab === 'list'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              {t.savedBiltiesTab} ({bilties.length})
+              <span className="truncate sm:hidden">
+                {t.savedBiltiesShort} ({bilties.length})
+              </span>
+              <span className="hidden sm:inline">
+                {t.savedBiltiesTab} ({bilties.length})
+              </span>
             </button>
             <button
               type="button"
@@ -484,13 +502,14 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
                 onSubViewChange?.('preview');
               }}
               disabled={!previewRecord}
-              className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 whitespace-nowrap ${
+              className={`inline-flex min-h-[38px] items-center justify-center rounded-md px-2 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 whitespace-nowrap sm:px-3.5 ${
                 subTab === 'preview'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              {t.previewBiltyTab}
+              <span className="truncate sm:hidden">{t.previewBiltyShort}</span>
+              <span className="hidden sm:inline">{t.previewBiltyTab}</span>
             </button>
           </div>
         </div>
@@ -547,50 +566,22 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
               <p className="mt-1 max-w-md text-xs text-slate-500">{t.noRecordsSub}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-start text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
-                    <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.biltyNumber}</th>
-                    <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.date}</th>
-                    <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.fromCity} → {t.toCity}</th>
-                    <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.driverName} / {t.gariNumber}</th>
-                    <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.tafseelMaalLabel}</th>
-                    <th className="px-3 py-2.5 text-end whitespace-nowrap">{t.balanceDue}</th>
-                    <th className="px-3 py-2.5 text-end whitespace-nowrap">{t.actions}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredBilties.map((b) => (
-                    <tr key={b.id} className="hover:bg-slate-50/80">
-                      <td className="px-3 py-2.5 font-mono font-bold text-blue-900 tabular-nums whitespace-nowrap">
-                        #{b.biltyNumber}
-                      </td>
-                      <td className="px-3 py-2.5 font-mono text-xs text-slate-600 tabular-nums whitespace-nowrap">
-                        {b.date || '—'}
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        <div className="font-medium text-slate-900">
-                          {b.fromCity || '—'} → {b.toCity || '—'}
+            <>
+              {/* Mobile Saved Bilties Cards (< md) */}
+              <div className="divide-y divide-slate-200 md:hidden">
+                {filteredBilties.map((b) => (
+                  <div key={b.id} className="space-y-2 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-mono text-sm font-bold text-blue-900 tabular-nums">
+                          #{b.biltyNumber}
                         </div>
-                        <div className="text-xs text-slate-500">
-                          {b.senderName || '—'} / {b.receiverName || '—'}
+                        <div className="font-mono text-[11px] text-slate-500 tabular-nums">
+                          {b.date || '—'}
                         </div>
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        <div className="font-mono text-xs font-semibold text-slate-900">
-                          {b.gariNumber || '—'}
-                        </div>
-                        <div className="text-xs text-slate-500">{b.driverName || '—'}</div>
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-700">
-                        <div>{b.goodsDescription || '—'}</div>
-                        <div className="text-slate-400">
-                          {[b.packagesCount, b.weight].filter(Boolean).join(' · ')}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 text-end whitespace-nowrap">
-                        <div className="font-mono font-bold text-slate-900 tabular-nums">
+                      </div>
+                      <div className="shrink-0 text-end">
+                        <div className="font-mono text-sm font-bold text-slate-900 tabular-nums">
                           {formatCurrencyPKR(b.balanceDue)}
                         </div>
                         {b.advancePaid > 0 && (
@@ -598,64 +589,238 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
                             {t.advanceLabel}: {formatCurrencyPKR(b.advancePaid)}
                           </div>
                         )}
-                      </td>
-                      <td className="px-3 py-2.5 text-end whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPreviewRecord(b);
-                              setSubTab('preview');
-                              onSubViewChange?.('preview');
-                            }}
-                            title={t.previewBiltyTab}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleShareWhatsApp(b)}
-                            title={t.shareWhatsappBilty}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingBilty(b);
-                              setSubTab('wizard');
-                              onSubViewChange?.('wizard');
-                            }}
-                            title={t.edit}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(b)}
-                            title={t.delete}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 text-xs text-slate-700">
+                      {(b.fromCity || b.toCity) && (
+                        <div className="font-semibold text-slate-900">
+                          {b.fromCity || '—'} → {b.toCity || '—'}
                         </div>
-                      </td>
+                      )}
+                      {(b.senderName || b.receiverName) && (
+                        <div className="text-[11px] text-slate-600">
+                          {b.senderName || '—'} / {b.receiverName || '—'}
+                        </div>
+                      )}
+                      {(b.gariNumber || b.driverName) && (
+                        <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-slate-600">
+                          {b.gariNumber && (
+                            <span className="font-mono font-semibold text-slate-800">
+                              {b.gariNumber}
+                            </span>
+                          )}
+                          {b.gariNumber && b.driverName && (
+                            <span className="text-slate-300" aria-hidden="true">·</span>
+                          )}
+                          {b.driverName && <span>{b.driverName}</span>}
+                        </div>
+                      )}
+                      {(b.goodsDescription || b.packagesCount || b.weight) && (
+                        <div className="text-[11px] text-slate-500 break-words">
+                          {[b.goodsDescription, b.packagesCount, b.weight]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewRecord(b);
+                          setSubTab('preview');
+                          onSubViewChange?.('preview');
+                        }}
+                        className="inline-flex min-h-[38px] flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>{t.previewBiltyShort}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleShareWhatsApp(b)}
+                        className="inline-flex min-h-[38px] flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span>WhatsApp</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingBilty(b);
+                          setSubTab('wizard');
+                          onSubViewChange?.('wizard');
+                        }}
+                        title={t.edit}
+                        className="inline-flex min-h-[38px] min-w-[40px] items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 text-slate-700 hover:bg-slate-100"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(b)}
+                        title={t.delete}
+                        className="inline-flex min-h-[38px] min-w-[40px] items-center justify-center rounded-lg border border-red-200 bg-white px-2.5 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table (>= md) */}
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full border-collapse text-start text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
+                      <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.biltyNumber}</th>
+                      <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.date}</th>
+                      <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.fromCity} → {t.toCity}</th>
+                      <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.driverName} / {t.gariNumber}</th>
+                      <th className="px-3 py-2.5 text-start whitespace-nowrap">{t.tafseelMaalLabel}</th>
+                      <th className="px-3 py-2.5 text-end whitespace-nowrap">{t.balanceDue}</th>
+                      <th className="px-3 py-2.5 text-end whitespace-nowrap">{t.actions}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredBilties.map((b) => (
+                      <tr key={b.id} className="hover:bg-slate-50/80">
+                        <td className="px-3 py-2.5 font-mono font-bold text-blue-900 tabular-nums whitespace-nowrap">
+                          #{b.biltyNumber}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-xs text-slate-600 tabular-nums whitespace-nowrap">
+                          {b.date || '—'}
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <div className="font-medium text-slate-900">
+                            {b.fromCity || '—'} → {b.toCity || '—'}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {b.senderName || '—'} / {b.receiverName || '—'}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <div className="font-mono text-xs font-semibold text-slate-900">
+                            {b.gariNumber || '—'}
+                          </div>
+                          <div className="text-xs text-slate-500">{b.driverName || '—'}</div>
+                        </td>
+                        <td className="px-3 py-2.5 text-xs text-slate-700">
+                          <div>{b.goodsDescription || '—'}</div>
+                          <div className="text-slate-400">
+                            {[b.packagesCount, b.weight].filter(Boolean).join(' · ')}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-end whitespace-nowrap">
+                          <div className="font-mono font-bold text-slate-900 tabular-nums">
+                            {formatCurrencyPKR(b.balanceDue)}
+                          </div>
+                          {b.advancePaid > 0 && (
+                            <div className="font-mono text-[11px] text-amber-700 tabular-nums">
+                              {t.advanceLabel}: {formatCurrencyPKR(b.advancePaid)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-end whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPreviewRecord(b);
+                                setSubTab('preview');
+                                onSubViewChange?.('preview');
+                              }}
+                              title={t.previewBiltyTab}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleShareWhatsApp(b)}
+                              title={t.shareWhatsappBilty}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingBilty(b);
+                                setSubTab('wizard');
+                                onSubViewChange?.('wizard');
+                              }}
+                              title={t.edit}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-100"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(b)}
+                              title={t.delete}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
 
       {/* Official Urdu Warraich Goods Samundri Bilty Preview & Print */}
       {subTab === 'preview' && previewRecord && (
-        <div className="space-y-4">
-          <div className="no-print flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <div className="space-y-3 sm:space-y-4">
+          {/* Mobile Compact Preview Toolbar: #Bilty + Zoom Toggle + Actions Bottom Sheet */}
+          <div className="no-print flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 md:hidden">
+            <span className="min-w-0 truncate font-mono text-xs font-bold text-slate-800">
+              {t.biltyNumber} #{previewRecord.biltyNumber}
+            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPreviewZoomed((prev) => !prev)}
+                className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold whitespace-nowrap ${
+                  previewZoomed
+                    ? 'border-blue-900 bg-blue-50 text-blue-900'
+                    : 'border-slate-300 bg-white text-slate-800'
+                }`}
+              >
+                {previewZoomed ? (
+                  <>
+                    <ZoomOut className="h-3.5 w-3.5" />
+                    <span>{t.fitWidthLabel}</span>
+                  </>
+                ) : (
+                  <>
+                    <ZoomIn className="h-3.5 w-3.5" />
+                    <span>{t.zoomViewLabel}</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileActionsOpen(true)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-900 px-3 text-xs font-semibold text-white hover:bg-blue-800 whitespace-nowrap"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+                <span>{t.actionsBtn}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Preview Toolbar */}
+          <div className="no-print hidden flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 md:flex">
             <span className="font-mono text-xs font-bold text-slate-700">
               {t.biltyNumber} #{previewRecord.biltyNumber}
             </span>
@@ -697,7 +862,66 @@ export const BiltyMaker: React.FC<BiltyMakerProps> = ({
             </div>
           </div>
 
-          <OfficialBiltySheet bilty={previewRecord} settings={settings} />
+          <OfficialBiltySheet
+            bilty={previewRecord}
+            settings={settings}
+            zoomed={previewZoomed}
+          />
+
+          <MobileBottomSheet
+            open={mobileActionsOpen}
+            title={`${t.biltyNumber} #${previewRecord.biltyNumber}`}
+            onClose={() => setMobileActionsOpen(false)}
+          >
+            <div className="grid grid-cols-1 gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileActionsOpen(false);
+                  window.print();
+                }}
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                <Printer className="h-4 w-4" />
+                <span>{t.printBilty}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileActionsOpen(false);
+                  handleShareWhatsApp(previewRecord);
+                }}
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>{t.shareWhatsappBilty}</span>
+              </button>
+              <button
+                type="button"
+                disabled={isExportingPdf}
+                onClick={() => {
+                  setMobileActionsOpen(false);
+                  handleExportPdf(previewRecord, false);
+                }}
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40"
+              >
+                <Download className="h-4 w-4" />
+                <span>{t.exportPdf}</span>
+              </button>
+              <button
+                type="button"
+                disabled={isExportingPdf}
+                onClick={() => {
+                  setMobileActionsOpen(false);
+                  handleExportPdf(previewRecord, true);
+                }}
+                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-40"
+              >
+                <UploadCloud className="h-4 w-4" />
+                <span>{t.savePdfDrive}</span>
+              </button>
+            </div>
+          </MobileBottomSheet>
         </div>
       )}
 

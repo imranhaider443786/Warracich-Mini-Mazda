@@ -11,6 +11,11 @@
 @layer base {
   html {
     font-family: var(--font-sans);
+    overflow-x: clip;
+  }
+
+  body {
+    overflow-x: clip;
   }
 
   html[dir="rtl"] {
@@ -20,6 +25,10 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .font-nastaliq {

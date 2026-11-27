@@ -104,16 +104,16 @@ export const DriveSettings: React.FC<DriveSettingsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
           {t.drivePageTitle}
         </h1>
-        <p className="mt-1 text-sm text-slate-600">{t.drivePageSub}</p>
+        <p className="mt-1 hidden text-sm text-slate-600 sm:block">{t.drivePageSub}</p>
       </div>
 
       {/* Google Drive Auth & Sync Panel */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
         <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-slate-900">
@@ -272,63 +272,109 @@ export const DriveSettings: React.FC<DriveSettingsProps> = ({
           </h3>
           {driveFiles.length === 0 ? (
             <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-              <FolderOpen className="h-4 w-4 text-slate-400" />
+              <FolderOpen className="h-4 w-4 shrink-0 text-slate-400" />
               <span>{t.noDriveFiles}</span>
             </div>
           ) : (
-            <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full border-collapse text-start text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 font-semibold text-slate-600">
-                    <th className="px-3 py-2 text-start">File</th>
-                    <th className="px-3 py-2 text-start">Folder</th>
-                    <th className="px-3 py-2 text-start">Modified</th>
-                    <th className="px-3 py-2 text-end">{t.actions}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {driveFiles.map((file) => (
-                    <tr key={file.id} className="hover:bg-slate-50">
-                      <td className="px-3 py-2 font-mono font-medium text-slate-900">
-                        <span className="inline-flex items-center gap-1.5">
-                          <FileText className="h-3.5 w-3.5 text-slate-400" />
-                          {file.name}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-slate-600">{file.folderLabel}</td>
-                      <td className="px-3 py-2 font-mono text-slate-500 tabular-nums">
-                        {file.modifiedTime
-                          ? new Date(file.modifiedTime).toLocaleString()
-                          : '—'}
-                      </td>
-                      <td className="px-3 py-2 text-end whitespace-nowrap">
-                        <div className="inline-flex items-center gap-2">
-                          {file.webViewLink && (
-                            <a
-                              href={file.webViewLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-slate-700 hover:bg-slate-100"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              {t.openInDrive}
-                            </a>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteFile(file)}
-                            className="inline-flex items-center rounded border border-red-200 p-1 text-red-600 hover:bg-red-50"
-                            title={t.delete}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+            <>
+              {/* Mobile Drive Files Cards (< md) */}
+              <div className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 md:hidden">
+                {driveFiles.map((file) => (
+                  <div key={file.id} className="space-y-2 p-3 text-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 font-mono font-semibold text-slate-900">
+                          <FileText className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          <span className="truncate">{file.name}</span>
                         </div>
-                      </td>
+                        <div className="mt-0.5 text-[11px] text-slate-500">
+                          {file.folderLabel}
+                          {file.modifiedTime
+                            ? ` · ${new Date(file.modifiedTime).toLocaleDateString()}`
+                            : ''}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {file.webViewLink && (
+                          <a
+                            href={file.webViewLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-h-[34px] items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span>{t.openInDrive}</span>
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteFile(file)}
+                          className="inline-flex min-h-[34px] min-w-[34px] items-center justify-center rounded-md border border-red-200 p-1 text-red-600 hover:bg-red-50"
+                          title={t.delete}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table (>= md) */}
+              <div className="mt-3 hidden overflow-x-auto rounded-lg border border-slate-200 md:block">
+                <table className="w-full border-collapse text-start text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 font-semibold text-slate-600">
+                      <th className="px-3 py-2 text-start">File</th>
+                      <th className="px-3 py-2 text-start">Folder</th>
+                      <th className="px-3 py-2 text-start">Modified</th>
+                      <th className="px-3 py-2 text-end">{t.actions}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {driveFiles.map((file) => (
+                      <tr key={file.id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2 font-mono font-medium text-slate-900">
+                          <span className="inline-flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-slate-400" />
+                            {file.name}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-slate-600">{file.folderLabel}</td>
+                        <td className="px-3 py-2 font-mono text-slate-500 tabular-nums">
+                          {file.modifiedTime
+                            ? new Date(file.modifiedTime).toLocaleString()
+                            : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-end whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2">
+                            {file.webViewLink && (
+                              <a
+                                href={file.webViewLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-slate-700 hover:bg-slate-100"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                {t.openInDrive}
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteFile(file)}
+                              className="inline-flex items-center rounded border border-red-200 p-1 text-red-600 hover:bg-red-50"
+                              title={t.delete}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -336,7 +382,7 @@ export const DriveSettings: React.FC<DriveSettingsProps> = ({
       {/* Adda Profile, Official Urdu Bilty Stationery & WhatsApp Templates */}
       <form
         onSubmit={handleSaveProfile}
-        className="space-y-6 rounded-xl border border-slate-200 bg-white p-6"
+        className="space-y-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-6"
       >
         <h2 className="border-b border-slate-100 pb-3 text-base font-semibold text-slate-900">
           {t.addaProfileTitle}
@@ -410,7 +456,7 @@ export const DriveSettings: React.FC<DriveSettingsProps> = ({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 focus:border-blue-800 focus:outline-none"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
                 {t.driveFolderLabel}
