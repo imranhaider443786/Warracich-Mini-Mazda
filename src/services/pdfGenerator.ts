@@ -951,49 +951,83 @@ export async function generateBiltyPdfBlob(
     ctx.restore();
   });
 
-  // Patron Box (Left) adjusted and filled cleanly from top to bottom
+  // Patron Box (Left) adjusted and filled edge-to-edge cleanly from top to bottom
   ctx.fillStyle = '#fef3c7';
   ctx.fillRect(innerX, footerY, patronW, footerH);
-  ctx.strokeStyle = '#475569';
+  ctx.strokeStyle = '#334155';
   ctx.lineWidth = 2;
   ctx.strokeRect(innerX, footerY, patronW, footerH);
 
   const pCenter = innerX + patronW / 2;
-  ctx.fillStyle = '#1e293b';
-  ctx.fillRect(pCenter - 110, footerY + 10, 220, 28);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = getNastaliqFont(700, 15.5);
-  ctx.textAlign = 'center';
-  ctx.fillText(st.patronLabelUrdu, pCenter, footerY + 24);
+  const usablePatronW = patronW - 22;
 
-  ctx.font = getNastaliqFont(700, 30);
-  ctx.save();
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 3.8;
-  ctx.lineJoin = 'round';
-  ctx.strokeText(st.patronNameUrdu, pCenter, footerY + 65);
-  ctx.restore();
-  ctx.fillStyle = '#dc2626';
-  ctx.fillText(st.patronNameUrdu, pCenter, footerY + 65);
-
+  // 1. Upper Designation Banner (مرکزی صدر)
   ctx.fillStyle = '#0f172a';
-  ctx.font = getNastaliqFont(700, 15.5);
-  const desigLines = wrapTextLines(ctx, st.patronDesignationUrdu, patronW - 22, 2);
-  desigLines.forEach((dl, di) => {
-    ctx.fillText(dl, pCenter, footerY + 103 + di * 22);
+  ctx.fillRect(innerX + 10, footerY + 8, patronW - 20, 28);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = getNastaliqFont(700, 16.5);
+  ctx.textAlign = 'center';
+  ctx.fillText(st.patronLabelUrdu, pCenter, footerY + 22);
+
+  // 2. Primary Name (شہزاد حیدر وڑائچ) — Largest, red with crisp white outline, fitted to width
+  ctx.font = getNastaliqFont(700, 31);
+  const rawNameW = Math.max(1, ctx.measureText(st.patronNameUrdu).width);
+  const nameScaleX = Math.max(0.75, Math.min(1.5, (usablePatronW * 0.96) / rawNameW));
+  ctx.save();
+  ctx.translate(pCenter, footerY + 63);
+  ctx.scale(nameScaleX, 1);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4.2;
+  ctx.lineJoin = 'round';
+  ctx.strokeText(st.patronNameUrdu, 0, 0);
+  ctx.fillStyle = '#dc2626';
+  ctx.fillText(st.patronNameUrdu, 0, 0);
+  ctx.restore();
+
+  // 3. Union Name (2 lines, smaller than Name above)
+  ctx.fillStyle = '#0f172a';
+  const explicitUnionLines = (st.patronDesignationUrdu || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const unionLines =
+    explicitUnionLines.length > 1
+      ? explicitUnionLines.slice(0, 2)
+      : wrapTextLines(ctx, st.patronDesignationUrdu || '', usablePatronW, 2);
+
+  unionLines.forEach((ul, ui) => {
+    ctx.font = getNastaliqFont(700, 15.5);
+    const rawLineW = Math.max(1, ctx.measureText(ul).width);
+    const lineScaleX =
+      rawLineW > usablePatronW * 0.96
+        ? Math.max(0.6, (usablePatronW * 0.96) / rawLineW)
+        : 1;
+    ctx.save();
+    ctx.translate(pCenter, footerY + 100 + ui * 23);
+    if (lineScaleX !== 1) ctx.scale(lineScaleX, 1);
+    ctx.fillText(ul, 0, 0);
+    ctx.restore();
   });
 
+  // 4. Mobile Number (0300-7689443) — Bold dark, fitted across box width
   ctx.fillStyle = '#0f172a';
-  ctx.font = getCleanDataFont(700, 29);
+  ctx.font = getCleanDataFont(700, 34);
   ctx.direction = 'ltr';
-  ctx.fillText(st.patronPhone, pCenter, footerY + 157);
+  const rawPhoneW = Math.max(1, ctx.measureText(st.patronPhone).width);
+  const phoneScaleX = Math.max(0.85, Math.min(1.75, (usablePatronW * 0.96) / rawPhoneW));
+  ctx.save();
+  ctx.translate(pCenter, footerY + 162);
+  ctx.scale(phoneScaleX, 1);
+  ctx.fillText(st.patronPhone, 0, 0);
+  ctx.restore();
   ctx.direction = 'rtl';
 
-  ctx.fillStyle = '#334155';
-  ctx.font = getNastaliqFont(700, 13.5);
-  const noteLines = wrapTextLines(ctx, st.patronNoteUrdu, patronW - 22, 2);
+  // 5. Bottom Complaint Guidance
+  ctx.fillStyle = '#0f172a';
+  ctx.font = getNastaliqFont(700, 13.8);
+  const noteLines = wrapTextLines(ctx, st.patronNoteUrdu, usablePatronW, 2);
   noteLines.forEach((nl, ni) => {
-    ctx.fillText(nl, pCenter, footerY + 190 + ni * 20);
+    ctx.fillText(nl, pCenter, footerY + 195 + ni * 20);
   });
 
   return canvasesToPdfBlob([canvas], 'portrait', 'NONE');

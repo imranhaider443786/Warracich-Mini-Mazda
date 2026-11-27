@@ -534,7 +534,7 @@ export const DriveSettings: React.FC<DriveSettingsProps> = ({
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Patron Name (سرپرست اعلیٰ)
+                Patron Name (مرکزی صدر)
               </label>
               <input
                 type="text"

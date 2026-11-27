@@ -50,6 +50,7 @@ import {
   enqueuePendingPdf,
   getPendingPdfs,
   loadLedgerFromIndexedDb,
+  migrateStationerySettings,
   removePendingPdf,
   saveLedgerToIndexedDb,
 } from './services/offlineDb';
@@ -480,10 +481,10 @@ export default function App() {
           settings: {
             ...prev.settings,
             ...(remote.settings || {}),
-            biltyStationery: {
+            biltyStationery: migrateStationerySettings({
               ...prev.settings.biltyStationery,
               ...(remote.settings?.biltyStationery || {}),
-            },
+            }),
           },
           syncMeta: {
             pendingChanges: 0,
@@ -553,10 +554,10 @@ export default function App() {
         settings: {
           ...prev.settings,
           ...(remote.settings || {}),
-          biltyStationery: {
+          biltyStationery: migrateStationerySettings({
             ...prev.settings.biltyStationery,
             ...(remote.settings?.biltyStationery || {}),
-          },
+          }),
         },
         syncMeta: {
           pendingChanges: 0,

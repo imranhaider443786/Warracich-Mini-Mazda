@@ -1,11 +1,57 @@
 import { DEFAULT_BILTY_STATIONERY, DEFAULT_SETTINGS } from '../i18n';
 import {
   BiltyRecord,
+  BiltyStationerySettings,
   DriverEntry,
   LedgerDatabase,
   OrderEntry,
   PendingPdfJob,
 } from '../types';
+
+export function migrateStationerySettings(
+  savedStationery?: Partial<BiltyStationerySettings>
+): BiltyStationerySettings {
+  const migratedBrandTitle =
+    !savedStationery?.brandTitleUrdu ||
+    savedStationery.brandTitleUrdu.trim() === 'وڑائچ گڈز سمندری'
+      ? DEFAULT_BILTY_STATIONERY.brandTitleUrdu
+      : savedStationery.brandTitleUrdu;
+
+  const migratedBrandSubtitle =
+    !savedStationery?.brandSubtitleUrdu ||
+    savedStationery.brandSubtitleUrdu.trim() ===
+      'گڈز ٹرانسپورٹ کمپنی اوکاڑہ بائی پاس 466 روڈ سمندری'
+      ? DEFAULT_BILTY_STATIONERY.brandSubtitleUrdu
+      : savedStationery.brandSubtitleUrdu;
+
+  const rawPatronLabel = savedStationery?.patronLabelUrdu?.trim() || '';
+  const migratedPatronLabel =
+    !rawPatronLabel || rawPatronLabel === 'سرپرست اعلیٰ لاہور'
+      ? DEFAULT_BILTY_STATIONERY.patronLabelUrdu
+      : savedStationery!.patronLabelUrdu!;
+
+  const rawPatronDesig = savedStationery?.patronDesignationUrdu?.trim() || '';
+  const migratedPatronDesig =
+    !rawPatronDesig ||
+    rawPatronDesig === 'صدر پاکستان منی مزدا گڈز ایسوسی ایشن لاہور'
+      ? DEFAULT_BILTY_STATIONERY.patronDesignationUrdu
+      : savedStationery!.patronDesignationUrdu!;
+
+  return {
+    ...DEFAULT_BILTY_STATIONERY,
+    ...(savedStationery || {}),
+    brandTitleUrdu: migratedBrandTitle,
+    brandSubtitleUrdu: migratedBrandSubtitle,
+    patronLabelUrdu: migratedPatronLabel,
+    patronNameUrdu:
+      savedStationery?.patronNameUrdu?.trim() || DEFAULT_BILTY_STATIONERY.patronNameUrdu,
+    patronDesignationUrdu: migratedPatronDesig,
+    patronPhone:
+      savedStationery?.patronPhone?.trim() || DEFAULT_BILTY_STATIONERY.patronPhone,
+    patronNoteUrdu:
+      savedStationery?.patronNoteUrdu?.trim() || DEFAULT_BILTY_STATIONERY.patronNoteUrdu,
+  };
+}
 
 const DB_NAME = 'adda-ledger-pro-db';
 const DB_VERSION = 1;
@@ -102,22 +148,11 @@ export async function loadLedgerFromIndexedDb(): Promise<LedgerDatabase> {
         } else {
           const savedSettings = val.settings;
           const savedStationery = savedSettings?.biltyStationery;
-          const migratedBrandTitle =
-            !savedStationery?.brandTitleUrdu ||
-            savedStationery.brandTitleUrdu.trim() === 'وڑائچ گڈز سمندری'
-              ? DEFAULT_BILTY_STATIONERY.brandTitleUrdu
-              : savedStationery.brandTitleUrdu;
           const migratedAddaNameUrdu =
             !savedSettings?.addaNameUrdu ||
             savedSettings.addaNameUrdu.trim() === 'وڑائچ گڈز سمندری'
               ? DEFAULT_SETTINGS.addaNameUrdu
               : savedSettings.addaNameUrdu;
-          const migratedBrandSubtitle =
-            !savedStationery?.brandSubtitleUrdu ||
-            savedStationery.brandSubtitleUrdu.trim() ===
-              'گڈز ٹرانسپورٹ کمپنی اوکاڑہ بائی پاس 466 روڈ سمندری'
-              ? DEFAULT_BILTY_STATIONERY.brandSubtitleUrdu
-              : savedStationery.brandSubtitleUrdu;
 
           resolve({
             drivers: Array.isArray(val.drivers) ? val.drivers.map(normalizeDriver) : [],
@@ -128,12 +163,7 @@ export async function loadLedgerFromIndexedDb(): Promise<LedgerDatabase> {
               ...DEFAULT_SETTINGS,
               ...(savedSettings || {}),
               addaNameUrdu: migratedAddaNameUrdu,
-              biltyStationery: {
-                ...DEFAULT_BILTY_STATIONERY,
-                ...(savedStationery || {}),
-                brandTitleUrdu: migratedBrandTitle,
-                brandSubtitleUrdu: migratedBrandSubtitle,
-              },
+              biltyStationery: migrateStationerySettings(savedStationery),
             },
             syncMeta: {
               pendingChanges: val.syncMeta?.pendingChanges ?? 0,
