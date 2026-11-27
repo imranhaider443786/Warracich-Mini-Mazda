@@ -97,12 +97,6 @@ export const OrderRegister: React.FC<OrderRegisterProps> = ({
       type: 'date',
     },
     {
-      key: 'customerName',
-      label: t.customerNameLabel,
-      type: 'text',
-      placeholder: lang === 'ur' ? 'مثلاً حاجی اکرم / بلال ٹریڈرز' : 'e.g. Haji Akram / Bilal Traders',
-    },
-    {
       key: 'mobileNumber',
       label: t.customerMobileLabel,
       type: 'tel',
@@ -123,6 +117,12 @@ export const OrderRegister: React.FC<OrderRegisterProps> = ({
           }
         />
       ),
+    },
+    {
+      key: 'customerName',
+      label: t.customerNameLabel,
+      type: 'text',
+      placeholder: lang === 'ur' ? 'مثلاً حاجی اکرم / بلال ٹریڈرز' : 'e.g. Haji Akram / Bilal Traders',
     },
     {
       key: 'goodsType',

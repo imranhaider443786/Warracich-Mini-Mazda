@@ -186,12 +186,6 @@ export const DriverRegister: React.FC<DriverRegisterProps> = ({
       placeholder: lang === 'ur' ? 'لاہور / کراچی' : 'Lahore / Karachi',
     },
     {
-      key: 'driverName',
-      label: t.driverName,
-      type: 'text',
-      placeholder: lang === 'ur' ? 'محمد اکرم' : 'Muhammad Akram',
-    },
-    {
       key: 'mobileNumber',
       label: t.mobileNumber,
       type: 'tel',
@@ -212,6 +206,12 @@ export const DriverRegister: React.FC<DriverRegisterProps> = ({
           }
         />
       ),
+    },
+    {
+      key: 'driverName',
+      label: t.driverName,
+      type: 'text',
+      placeholder: lang === 'ur' ? 'محمد اکرم' : 'Muhammad Akram',
     },
     {
       key: 'weightCapacity',
