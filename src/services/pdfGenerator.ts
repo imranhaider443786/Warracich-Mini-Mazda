@@ -412,7 +412,7 @@ export async function generateBiltyPdfBlob(
   ctx.translate(mastheadCenterX, mastheadY);
   ctx.rotate(-0.007);
 
-  let mastFontSize = 48;
+  let mastFontSize = 52;
   const gapW = 10;
   const measureHeadline = (sz: number) => {
     ctx.font = getNastaliqFont(700, sz);
@@ -432,7 +432,7 @@ export async function generateBiltyPdfBlob(
   let dims = measureHeadline(mastFontSize);
   if (dims.total > targetMastheadW) {
     mastFontSize = Math.max(
-      36,
+      38,
       Math.floor(mastFontSize * (targetMastheadW / Math.max(1, dims.total)))
     );
     dims = measureHeadline(mastFontSize);
@@ -451,18 +451,24 @@ export async function generateBiltyPdfBlob(
   ctx.font = getNastaliqFont(700, mastFontSize);
   ctx.textAlign = 'center';
 
-  // Standout Business Name: Deep Crimson fill (#991b1b) + Thick Gold-Yellow outline (#fde047) + Dark 3D shadow
+  // Standout Business Name: Extra-Bold Yellow fill (#fde047) + Thick Red outline (#dc2626) + Dark 3D shadow
   ctx.save();
   ctx.shadowColor = '#0f172a';
   ctx.shadowOffsetX = 3.5;
   ctx.shadowOffsetY = 3.5;
-  ctx.strokeStyle = '#fde047';
-  ctx.lineWidth = 9;
+  ctx.strokeStyle = '#dc2626';
+  ctx.lineWidth = 11;
   ctx.lineJoin = 'round';
   ctx.strokeText(mainMasthead, mainCenterX, 0);
   ctx.restore();
-  ctx.fillStyle = '#991b1b';
+  ctx.save();
+  ctx.strokeStyle = '#fde047';
+  ctx.lineWidth = 1.6;
+  ctx.lineJoin = 'round';
+  ctx.strokeText(mainMasthead, mainCenterX, 0);
+  ctx.fillStyle = '#fde047';
   ctx.fillText(mainMasthead, mainCenterX, 0);
+  ctx.restore();
 
   if (citySuffix) {
     ctx.font = getNastaliqFont(700, Math.round(mastFontSize * 0.72));
@@ -470,12 +476,12 @@ export async function generateBiltyPdfBlob(
     ctx.shadowColor = '#0f172a';
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#dc2626';
+    ctx.lineWidth = 5.5;
     ctx.lineJoin = 'round';
     ctx.strokeText(citySuffix, cityCenterX, 5);
     ctx.restore();
-    ctx.fillStyle = '#f8fafc';
+    ctx.fillStyle = '#fde047';
     ctx.fillText(citySuffix, cityCenterX, 5);
   }
 
@@ -517,20 +523,20 @@ export async function generateBiltyPdfBlob(
   const badgeColW = 164;
   const yellowW = leftHalfW - badgeColW - 10; // 330px
   const yellowX = innerX + badgeColW + 10;
-  const bannerBoxH = 174;
+  const bannerBoxH = 180;
 
-  // Yellow Box: Title & Numbers stretched edge-to-edge across box width
+  // Yellow Box: Title & Numbers stretched edge-to-edge with clear non-overlapping vertical gap
   ctx.fillStyle = '#fef3c7';
   ctx.fillRect(yellowX, y, yellowW, bannerBoxH);
   ctx.strokeStyle = '#d97706';
   ctx.lineWidth = 2;
   ctx.strokeRect(yellowX, y, yellowW, bannerBoxH);
 
-  ctx.font = getNastaliqFont(700, 18.5);
+  ctx.font = getNastaliqFont(700, 17);
   const rawTitleW = Math.max(1, ctx.measureText(st.primaryContactTitle).width);
   const titleScaleX = Math.max(0.75, Math.min(2.0, (yellowW - 12) / rawTitleW));
   ctx.save();
-  ctx.translate(yellowX + yellowW / 2, y + 18);
+  ctx.translate(yellowX + yellowW / 2, y + 15);
   ctx.scale(titleScaleX, 1);
   ctx.fillStyle = '#dc2626';
   ctx.textAlign = 'center';
@@ -540,8 +546,8 @@ export async function generateBiltyPdfBlob(
   ctx.fillStyle = '#dc2626';
   ctx.direction = 'ltr';
   st.primaryContactPhones.slice(0, 4).forEach((ph, idx) => {
-    const py = y + 52 + idx * 33;
-    ctx.font = getCondensedFont(700, 34);
+    const py = y + 58 + idx * 32;
+    ctx.font = getCondensedFont(700, 30);
     const numW = Math.max(1, ctx.measureText(ph).width);
     const numScaleX = Math.max(0.85, Math.min(2.2, (yellowW - 12) / numW));
     ctx.save();
@@ -890,10 +896,10 @@ export async function generateBiltyPdfBlob(
   ctx.textAlign = 'left';
   ctx.fillText('دستخط منیجر ______', tafseelCellRight - tafseelCellW + 10, mottoY);
 
-  // ── FOOTER: TOP-RIGHT BOLD شرائط (1 SENTENCE PER NUMBERED LINE) + PATRON BOX ──
-  const patronW = 330;
+  // ── FOOTER: TOP-RIGHT BOLD شرائط (BOLD 1 SENTENCE PER LINE) + FILLED PATRON BOX ──
+  const patronW = 344;
   const termsGap = 14;
-  const termsW = innerW - patronW - termsGap; // 864px
+  const termsW = innerW - patronW - termsGap; // 850px
   const termsX = innerX + patronW + termsGap;
 
   // Yellow Terms Box
@@ -905,11 +911,16 @@ export async function generateBiltyPdfBlob(
 
   // Top-right BOLD "شرائط:" heading
   ctx.fillStyle = '#dc2626';
-  ctx.font = getNastaliqFont(700, 17.5);
+  ctx.font = getNastaliqFont(700, 18.5);
   ctx.textAlign = 'right';
+  ctx.save();
+  ctx.strokeStyle = '#dc2626';
+  ctx.lineWidth = 0.7;
+  ctx.strokeText('شرائط:', termsX + termsW - 14, footerY + 19);
   ctx.fillText('شرائط:', termsX + termsW - 14, footerY + 19);
+  ctx.restore();
 
-  // One numbered sentence per line (1–7) with automatic horizontal fit so zero clauses wrap
+  // One numbered sentence per line (1–7) in crisp bold Nastaliq with automatic horizontal fit
   const clauses = st.termsUrdu.filter(Boolean);
   const clauseRightX = termsX + termsW - 14;
   const usableClauseW = termsW - 28;
@@ -923,7 +934,7 @@ export async function generateBiltyPdfBlob(
   ctx.textAlign = 'right';
   clauses.forEach((clause, cIdx) => {
     const cy = clauseTopY + cIdx * clauseStep;
-    ctx.font = getNastaliqFont(700, 14.8);
+    ctx.font = getNastaliqFont(700, 15.2);
     const rawW = Math.max(1, ctx.measureText(clause).width);
     const lineScaleX = rawW > usableClauseW ? Math.max(0.55, usableClauseW / rawW) : 1;
 
@@ -932,11 +943,15 @@ export async function generateBiltyPdfBlob(
     if (lineScaleX < 1) {
       ctx.scale(lineScaleX, 1);
     }
+    ctx.strokeStyle = '#7f1d1d';
+    ctx.lineWidth = 0.65;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(clause, 0, 0);
     ctx.fillText(clause, 0, 0);
     ctx.restore();
   });
 
-  // Patron Box (Left) matching footer height
+  // Patron Box (Left) adjusted and filled cleanly from top to bottom
   ctx.fillStyle = '#fef3c7';
   ctx.fillRect(innerX, footerY, patronW, footerH);
   ctx.strokeStyle = '#475569';
@@ -945,43 +960,41 @@ export async function generateBiltyPdfBlob(
 
   const pCenter = innerX + patronW / 2;
   ctx.fillStyle = '#1e293b';
-  ctx.fillRect(pCenter - 96, footerY + 14, 192, 26);
+  ctx.fillRect(pCenter - 110, footerY + 10, 220, 28);
   ctx.fillStyle = '#ffffff';
-  ctx.font = getNastaliqFont(700, 13.5);
+  ctx.font = getNastaliqFont(700, 15.5);
   ctx.textAlign = 'center';
-  ctx.fillText(st.patronLabelUrdu, pCenter, footerY + 27);
+  ctx.fillText(st.patronLabelUrdu, pCenter, footerY + 24);
 
-  ctx.font = getNastaliqFont(700, 24);
+  ctx.font = getNastaliqFont(700, 30);
   ctx.save();
   ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 3.2;
+  ctx.lineWidth = 3.8;
   ctx.lineJoin = 'round';
-  ctx.strokeText(st.patronNameUrdu, pCenter, footerY + 72);
+  ctx.strokeText(st.patronNameUrdu, pCenter, footerY + 65);
   ctx.restore();
   ctx.fillStyle = '#dc2626';
-  ctx.fillText(st.patronNameUrdu, pCenter, footerY + 72);
+  ctx.fillText(st.patronNameUrdu, pCenter, footerY + 65);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = getNastaliqFont(700, 13);
-  ctx.fillText(
-    fitText(ctx, st.patronDesignationUrdu, patronW - 18),
-    pCenter,
-    footerY + 114
-  );
+  ctx.font = getNastaliqFont(700, 15.5);
+  const desigLines = wrapTextLines(ctx, st.patronDesignationUrdu, patronW - 22, 2);
+  desigLines.forEach((dl, di) => {
+    ctx.fillText(dl, pCenter, footerY + 103 + di * 22);
+  });
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = getCleanDataFont(700, 22);
+  ctx.font = getCleanDataFont(700, 29);
   ctx.direction = 'ltr';
-  ctx.fillText(st.patronPhone, pCenter, footerY + 154);
+  ctx.fillText(st.patronPhone, pCenter, footerY + 157);
   ctx.direction = 'rtl';
 
   ctx.fillStyle = '#334155';
-  ctx.font = getNastaliqFont(600, 11.5);
-  ctx.fillText(
-    fitText(ctx, st.patronNoteUrdu, patronW - 16),
-    pCenter,
-    footerY + 194
-  );
+  ctx.font = getNastaliqFont(700, 13.5);
+  const noteLines = wrapTextLines(ctx, st.patronNoteUrdu, patronW - 22, 2);
+  noteLines.forEach((nl, ni) => {
+    ctx.fillText(nl, pCenter, footerY + 190 + ni * 20);
+  });
 
   return canvasesToPdfBlob([canvas], 'portrait', 'NONE');
 }

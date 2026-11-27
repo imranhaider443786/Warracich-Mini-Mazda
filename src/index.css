@@ -31,10 +31,22 @@
 }
 
 .bilty-outline-back-lg {
-  color: #fde047;
-  -webkit-text-stroke: 7px #fde047;
+  color: #dc2626;
+  -webkit-text-stroke: 7.5px #dc2626;
   paint-order: stroke fill;
-  text-shadow: 3.5px 3.5px 0 #0f172a, 1.5px 1.5px 0 #0f172a;
+  text-shadow: 3px 3px 0 #0f172a, 1.5px 1.5px 0 #7f1d1d;
+}
+
+.bilty-masthead-yellow-bold {
+  color: #fde047;
+  -webkit-text-stroke: 0.9px #fde047;
+  paint-order: stroke fill;
+}
+
+.bilty-bold-urdu {
+  font-weight: 700;
+  -webkit-text-stroke: 0.35px currentColor;
+  paint-order: stroke fill;
 }
 
 .bilty-outline-back-sm {
@@ -45,8 +57,8 @@
 }
 
 .bilty-masthead-outline {
-  color: #f8fafc;
-  -webkit-text-stroke: 2.5px #334155;
+  color: #fde047;
+  -webkit-text-stroke: 3.5px #dc2626;
   paint-order: stroke fill;
   text-shadow: 2px 2px 0 #0f172a;
 }

@@ -240,13 +240,13 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
                   <h2 className="font-nastaliq font-bold leading-[1.28]">
                     <DualOutlineUrdu
                       text={mainMasthead}
-                      sizeClass="text-[26px]"
+                      sizeClass="text-[29px]"
                       backClass="bilty-outline-back-lg"
-                      frontColorClass="text-[#991b1b]"
+                      frontColorClass="bilty-masthead-yellow-bold"
                     />
                   </h2>
                   {citySuffix && (
-                    <span className="bilty-masthead-outline font-nastaliq text-[20px] font-bold leading-[1.28]">
+                    <span className="bilty-masthead-outline font-nastaliq text-[21px] font-bold leading-[1.28]">
                       {citySuffix}
                     </span>
                   )}
@@ -276,19 +276,19 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
           <div className="col-span-5 grid grid-cols-12 gap-1.5">
             <div
               ref={imranBoxRef}
-              className="col-span-8 flex h-[116px] flex-col justify-between overflow-hidden border-[1.5px] border-[#d97706] bg-[#fef3c7] px-1 py-0.5 text-center"
+              className="col-span-8 flex h-[126px] flex-col justify-between overflow-hidden border-[1.5px] border-[#d97706] bg-[#fef3c7] px-1 pt-1 pb-1 text-center"
             >
-              <div className="flex items-center justify-center overflow-hidden">
+              <div className="flex shrink-0 items-center justify-center overflow-hidden pb-1">
                 <div
                   ref={imranTitleRef}
-                  className="font-nastaliq inline-block origin-center whitespace-nowrap text-[11.5px] font-bold leading-[1.45] text-[#dc2626]"
+                  className="font-nastaliq inline-block origin-center whitespace-nowrap text-[11px] font-bold leading-[1.55] text-[#dc2626]"
                   style={{ transform: `scaleX(${imranTitleScaleX})` }}
                 >
                   {st.primaryContactTitle}
                 </div>
               </div>
               <div
-                className="flex flex-1 flex-col justify-between font-condensed text-[23px] font-bold leading-[0.88] tracking-tight text-[#dc2626] tabular-nums"
+                className="flex flex-1 flex-col justify-between pt-0.5 font-condensed text-[20px] font-bold leading-[0.95] tracking-tight text-[#dc2626] tabular-nums"
                 dir="ltr"
               >
                 {st.primaryContactPhones.map((ph, idx) => (
@@ -308,7 +308,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
               </div>
             </div>
 
-            <div className="col-span-4 flex h-[116px] flex-col justify-between gap-1">
+            <div className="col-span-4 flex h-[126px] flex-col justify-between gap-1">
               {/* Top Sticker: 43 Group (Double-Bordered Red Rounded Rectangle) */}
               <div className="flex flex-1 rounded-md border-2 border-[#dc2626] p-[1.5px]">
                 <div className="flex w-full flex-col items-center justify-center rounded-[4px] border border-white/95 bg-[#dc2626] px-1 py-0.5 text-center text-white">
@@ -533,10 +533,10 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
           </table>
         </div>
 
-        {/* Footer: Bold Top-Right شرائط with Strictly One Sentence Per Numbered Line + Patron Box */}
-        <div className="mt-2 grid grid-cols-[1fr_205px] items-stretch gap-2">
+        {/* Footer: Bold Top-Right شرائط with Bold 1-Line-Per-Sentence Terms + Filled Patron Box */}
+        <div className="mt-2 grid grid-cols-[1fr_218px] items-stretch gap-2">
           <div className="border-[1.5px] border-[#d97706] bg-[#fef9c3] px-2.5 py-1.5 text-[#7f1d1d]">
-            <div className="font-nastaliq text-right text-[10.5px] font-bold leading-[1.5] text-[#dc2626]">
+            <div className="font-nastaliq bilty-bold-urdu text-right text-[11px] font-bold leading-[1.5] text-[#dc2626]">
               شرائط:
             </div>
             <div ref={termsBoxRef} className="mt-0.5 w-full space-y-0.5 overflow-hidden">
@@ -546,7 +546,7 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
                     ref={(el) => {
                       termLineRefs.current[idx] = el;
                     }}
-                    className="font-nastaliq inline-block origin-right whitespace-nowrap text-[9.4px] font-bold leading-[1.58] text-[#7f1d1d]"
+                    className="font-nastaliq bilty-bold-urdu inline-block origin-right whitespace-nowrap text-[9.8px] font-bold leading-[1.58] text-[#7f1d1d]"
                     style={{
                       transform: `scaleX(${termLineScales[idx] ?? 1})`,
                     }}
@@ -558,30 +558,30 @@ export const OfficialBiltySheet: React.FC<OfficialBiltySheetProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-col justify-between border-[1.5px] border-slate-700 bg-[#fef3c7] px-1.5 py-1.5 text-center">
-            <div>
-              <div className="font-nastaliq inline-block rounded-xs bg-slate-900 px-2.5 py-0 text-[9px] font-bold leading-[1.5] text-white">
+          <div className="flex flex-col justify-between border-[1.5px] border-slate-700 bg-[#fef3c7] px-2 py-2.5 text-center">
+            <div className="space-y-1">
+              <div className="font-nastaliq inline-block rounded-xs bg-slate-900 px-3 py-0.5 text-[10.5px] font-bold leading-[1.5] text-white">
                 {st.patronLabelUrdu}
               </div>
-              <div className="mt-0.5 font-nastaliq font-bold leading-[1.45]">
+              <div className="font-nastaliq font-bold leading-[1.45]">
                 <DualOutlineUrdu
                   text={st.patronNameUrdu}
-                  sizeClass="text-[15.5px]"
+                  sizeClass="text-[20px]"
                   frontColorClass="text-[#dc2626]"
                 />
               </div>
-              <div className="font-nastaliq mt-0.5 text-[8.2px] font-bold leading-[1.45] text-slate-900">
+              <div className="font-nastaliq text-[10px] font-bold leading-[1.55] text-slate-900">
                 {st.patronDesignationUrdu}
               </div>
             </div>
-            <div className="pt-1">
+            <div className="space-y-1 pt-1.5">
               <div
-                className="font-sans text-[15px] font-black leading-tight tracking-wide text-slate-900 tabular-nums"
+                className="font-sans text-[21px] font-black leading-none tracking-wide text-slate-900 tabular-nums"
                 dir="ltr"
               >
                 {st.patronPhone}
               </div>
-              <div className="font-nastaliq mt-0.5 text-[8px] font-semibold leading-[1.4] text-slate-800">
+              <div className="font-nastaliq text-[9.3px] font-bold leading-[1.5] text-slate-800">
                 {st.patronNoteUrdu}
               </div>
             </div>
