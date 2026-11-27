@@ -106,11 +106,11 @@
   min-width: 18px;
 }
 
-/* Print stylesheet: fill full A4 landscape page edge-to-edge on strictly 1 page */
+/* Print stylesheet: fill full A4 portrait page edge-to-edge on strictly 1 page */
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 2mm;
+    size: A4 portrait;
+    margin: 3mm;
   }
 
   html,
@@ -128,8 +128,8 @@
 
   html:has(.print-sheet-scaler),
   body:has(.print-sheet-scaler) {
-    height: 205mm !important;
-    max-height: 205mm !important;
+    height: 290mm !important;
+    max-height: 290mm !important;
     overflow: hidden !important;
   }
 
@@ -150,16 +150,17 @@
   }
 
   .print-main-reset:has(.print-sheet-scaler) {
-    height: 205mm !important;
-    max-height: 205mm !important;
+    height: 290mm !important;
+    max-height: 290mm !important;
     overflow: hidden !important;
   }
 
   .print-sheet-scaler {
     position: relative !important;
     width: 100% !important;
-    height: 180mm !important;
-    max-height: 205mm !important;
+    max-width: none !important;
+    height: 290mm !important;
+    max-height: 290mm !important;
     overflow: hidden !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -175,10 +176,10 @@
     position: absolute !important;
     top: 0 !important;
     left: 50% !important;
-    width: 1123px !important;
-    height: auto !important;
+    width: 794px !important;
+    height: 1123px !important;
     max-width: none !important;
-    transform: translateX(-50%) scale(0.972) !important;
+    transform: translateX(-50%) scale(0.97) !important;
     transform-origin: top center !important;
     border: none !important;
     box-shadow: none !important;
