@@ -1,3 +1,4 @@
+import { IMPORTED_DRIVER_SHEET_ENTRIES } from '../data/importedDriverSheets';
 import { DEFAULT_BILTY_STATIONERY, DEFAULT_SETTINGS } from '../i18n';
 import {
   BiltyRecord,
@@ -59,10 +60,44 @@ const DB_VERSION = 1;
 const STORE_STATE = 'app_state';
 const STORE_PDF_QUEUE = 'pending_pdfs';
 const STATE_KEY = 'ledger';
+const KEY_IMPORTED_SHEETS_V1 = 'imported_sheets_2026_sep_nov_v1';
+
+function driverFingerprint(d: DriverEntry): string {
+  const digits = (d.mobileNumber || '').replace(/\D/g, '');
+  const phoneKey = digits.length >= 10 ? digits.slice(-10) : digits;
+  return [
+    (d.date || '').trim(),
+    (d.gariNumber || '').trim().toUpperCase().replace(/\s+/g, ''),
+    phoneKey,
+    (d.driverName || '').trim().toLowerCase(),
+  ].join('|');
+}
+
+export function mergeImportedDriverSheets(existingDrivers: DriverEntry[]): {
+  merged: DriverEntry[];
+  addedCount: number;
+} {
+  const seenIds = new Set(existingDrivers.map((d) => d.id));
+  const seenFingerprints = new Set(existingDrivers.map(driverFingerprint));
+  const additions: DriverEntry[] = [];
+
+  for (const row of IMPORTED_DRIVER_SHEET_ENTRIES) {
+    const fp = driverFingerprint(row);
+    if (seenIds.has(row.id) || seenFingerprints.has(fp)) continue;
+    seenIds.add(row.id);
+    seenFingerprints.add(fp);
+    additions.push(row);
+  }
+
+  return {
+    merged: [...existingDrivers, ...additions],
+    addedCount: additions.length,
+  };
+}
 
 export function createEmptyDatabase(): LedgerDatabase {
   return {
-    drivers: [],
+    drivers: [...IMPORTED_DRIVER_SHEET_ENTRIES],
     orders: [],
     bilties: [],
     rooznamcha: [],
@@ -138,45 +173,85 @@ function openDb(): Promise<IDBDatabase> {
 export async function loadLedgerFromIndexedDb(): Promise<LedgerDatabase> {
   try {
     const db = await openDb();
-    return await new Promise((resolve, reject) => {
+    const { savedLedger, sheetsApplied } = await new Promise<{
+      savedLedger: LedgerDatabase | undefined;
+      sheetsApplied: boolean;
+    }>((resolve, reject) => {
       const tx = db.transaction(STORE_STATE, 'readonly');
       const store = tx.objectStore(STORE_STATE);
-      const req = store.get(STATE_KEY);
-      req.onsuccess = () => {
-        const val = req.result as LedgerDatabase | undefined;
-        if (!val) {
-          resolve(createEmptyDatabase());
-        } else {
-          const savedSettings = val.settings;
-          const savedStationery = savedSettings?.biltyStationery;
-          const migratedAddaNameUrdu =
-            !savedSettings?.addaNameUrdu ||
-            savedSettings.addaNameUrdu.trim() === 'وڑائچ گڈز سمندری'
-              ? DEFAULT_SETTINGS.addaNameUrdu
-              : savedSettings.addaNameUrdu;
-
-          resolve({
-            drivers: Array.isArray(val.drivers) ? val.drivers.map(normalizeDriver) : [],
-            orders: Array.isArray(val.orders) ? val.orders.map(normalizeOrder) : [],
-            bilties: Array.isArray(val.bilties) ? val.bilties.map(normalizeBilty) : [],
-            rooznamcha: Array.isArray(val.rooznamcha) ? val.rooznamcha : [],
-            settings: {
-              ...DEFAULT_SETTINGS,
-              ...(savedSettings || {}),
-              addaNameUrdu: migratedAddaNameUrdu,
-              biltyStationery: migrateStationerySettings(savedStationery),
-            },
-            syncMeta: {
-              pendingChanges: val.syncMeta?.pendingChanges ?? 0,
-              lastLocalEditAt: val.syncMeta?.lastLocalEditAt ?? 0,
-              lastSyncedAt: val.syncMeta?.lastSyncedAt ?? null,
-              lastDriveModifiedTime: val.syncMeta?.lastDriveModifiedTime ?? null,
-            },
-          });
-        }
-      };
-      req.onerror = () => reject(req.error);
+      const reqLedger = store.get(STATE_KEY);
+      const reqFlag = store.get(KEY_IMPORTED_SHEETS_V1);
+      tx.oncomplete = () =>
+        resolve({
+          savedLedger: reqLedger.result as LedgerDatabase | undefined,
+          sheetsApplied: Boolean(reqFlag.result),
+        });
+      tx.onerror = () => reject(tx.error);
     });
+
+    let resolved: LedgerDatabase;
+    if (!savedLedger) {
+      resolved = createEmptyDatabase();
+    } else {
+      const savedSettings = savedLedger.settings;
+      const savedStationery = savedSettings?.biltyStationery;
+      const migratedAddaNameUrdu =
+        !savedSettings?.addaNameUrdu ||
+        savedSettings.addaNameUrdu.trim() === 'وڑائچ گڈز سمندری'
+          ? DEFAULT_SETTINGS.addaNameUrdu
+          : savedSettings.addaNameUrdu;
+
+      resolved = {
+        drivers: Array.isArray(savedLedger.drivers)
+          ? savedLedger.drivers.map(normalizeDriver)
+          : [],
+        orders: Array.isArray(savedLedger.orders)
+          ? savedLedger.orders.map(normalizeOrder)
+          : [],
+        bilties: Array.isArray(savedLedger.bilties)
+          ? savedLedger.bilties.map(normalizeBilty)
+          : [],
+        rooznamcha: Array.isArray(savedLedger.rooznamcha) ? savedLedger.rooznamcha : [],
+        settings: {
+          ...DEFAULT_SETTINGS,
+          ...(savedSettings || {}),
+          addaNameUrdu: migratedAddaNameUrdu,
+          biltyStationery: migrateStationerySettings(savedStationery),
+        },
+        syncMeta: {
+          pendingChanges: savedLedger.syncMeta?.pendingChanges ?? 0,
+          lastLocalEditAt: savedLedger.syncMeta?.lastLocalEditAt ?? 0,
+          lastSyncedAt: savedLedger.syncMeta?.lastSyncedAt ?? null,
+          lastDriveModifiedTime: savedLedger.syncMeta?.lastDriveModifiedTime ?? null,
+        },
+      };
+    }
+
+    if (!sheetsApplied) {
+      const { merged, addedCount } = mergeImportedDriverSheets(resolved.drivers);
+      resolved = {
+        ...resolved,
+        drivers: merged,
+        syncMeta: {
+          ...resolved.syncMeta,
+          pendingChanges:
+            savedLedger && addedCount > 0
+              ? resolved.syncMeta.pendingChanges + addedCount
+              : resolved.syncMeta.pendingChanges,
+        },
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE_STATE, 'readwrite');
+        const store = tx.objectStore(STORE_STATE);
+        store.put(resolved, STATE_KEY);
+        store.put(true, KEY_IMPORTED_SHEETS_V1);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    return resolved;
   } catch {
     return createEmptyDatabase();
   }

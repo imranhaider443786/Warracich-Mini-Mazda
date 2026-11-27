@@ -33,12 +33,15 @@ import {
   downloadBlobLocally,
   generateDriverRegisterPdfBlob,
 } from '../services/pdfGenerator';
+import { DirectoryContact } from '../services/contacts';
 import { ConfirmModal } from './ConfirmModal';
+import { ContactPickerFieldPanel } from './ContactPickerFieldPanel';
 import { MobileBottomSheet } from './MobileBottomSheet';
 import { StepEntryWizard, WizardStepConfig } from './StepEntryWizard';
 
 interface DriverRegisterProps {
   drivers: DriverEntry[];
+  contacts: DirectoryContact[];
   settings: AddaSettings;
   lang: Language;
   autoStartWizard?: boolean;
@@ -67,6 +70,7 @@ function getCurrentTime(): string {
 
 export const DriverRegister: React.FC<DriverRegisterProps> = ({
   drivers,
+  contacts,
   settings,
   lang,
   autoStartWizard,
@@ -192,6 +196,22 @@ export const DriverRegister: React.FC<DriverRegisterProps> = ({
       label: t.mobileNumber,
       type: 'tel',
       placeholder: '0300-1234567',
+      renderExtra: (vals, setVals) => (
+        <ContactPickerFieldPanel
+          lang={lang}
+          contacts={contacts}
+          currentName={vals.driverName || ''}
+          currentPhone={vals.mobileNumber || ''}
+          onNotify={onNotify}
+          onSelectContact={(pickedName, pickedPhone) =>
+            setVals((prev) => ({
+              ...prev,
+              mobileNumber: pickedPhone || prev.mobileNumber,
+              driverName: pickedName || prev.driverName,
+            }))
+          }
+        />
+      ),
     },
     {
       key: 'weightCapacity',

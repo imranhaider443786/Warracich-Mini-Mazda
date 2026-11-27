@@ -213,6 +213,16 @@ export const TRANSLATIONS = {
     wizardSaveFinal: 'Save Entry',
     wizardSaveAndPrint: 'Save & Open Official Bilty',
     wizardCancel: 'Cancel Entry',
+    // Contacts Selection
+    pickFromPhoneContacts: 'Phone Contacts',
+    pickFromDirectory: 'Saved Directory',
+    contactsDirectoryTitle: 'Select Contact',
+    contactsSearchPlaceholder: 'Search by name, phone, city, or vehicle...',
+    noContactsFound: 'No matching contacts found in saved records.',
+    contactLinkedNameHint: 'Name in register',
+    phoneContactsUnavailable: 'Device contact picker is unavailable here — showing Saved Directory.',
+    unnamedContact: 'Unnamed Contact',
+    contactSelectedNotice: 'Selected contact loaded with name and number.',
     // Common
     installApp: 'Install App',
     installIOS: 'Install on iOS',
@@ -427,6 +437,16 @@ export const TRANSLATIONS = {
     wizardSaveFinal: 'محفوظ کریں',
     wizardSaveAndPrint: 'محفوظ کریں اور آفیشل بلٹی دیکھیں',
     wizardCancel: 'اندراج منسوخ کریں',
+    // Contacts Selection
+    pickFromPhoneContacts: 'فون کانٹیکٹس',
+    pickFromDirectory: 'محفوظ ڈائریکٹری',
+    contactsDirectoryTitle: 'کانٹیکٹ منتخب کریں',
+    contactsSearchPlaceholder: 'نام، موبائل، شہر یا گاڑی سے تلاش کریں...',
+    noContactsFound: 'محفوظ ریکارڈ میں کوئی ملتا جلتا کانٹیکٹ نہیں ملا۔',
+    contactLinkedNameHint: 'رجسٹر میں نام',
+    phoneContactsUnavailable: 'اس براؤزر میں فون کانٹیکٹس دستیاب نہیں — محفوظ ڈائریکٹری کھولی جا رہی ہے۔',
+    unnamedContact: 'بغیر نام کانٹیکٹ',
+    contactSelectedNotice: 'منتخب کانٹیکٹ کا نمبر اور نام درج ہو گیا۔',
     // Common
     installApp: 'ایپ انسٹال کریں',
     installIOS: 'آئی فون پر انسٹال کریں',

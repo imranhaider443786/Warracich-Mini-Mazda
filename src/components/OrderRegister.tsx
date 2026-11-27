@@ -11,11 +11,14 @@ import {
 } from 'lucide-react';
 import { formatCurrencyPKR, GOODS_TYPE_PRESETS, TRANSLATIONS } from '../i18n';
 import { Language, OrderEntry } from '../types';
+import { DirectoryContact } from '../services/contacts';
 import { ConfirmModal } from './ConfirmModal';
+import { ContactPickerFieldPanel } from './ContactPickerFieldPanel';
 import { StepEntryWizard, WizardStepConfig } from './StepEntryWizard';
 
 interface OrderRegisterProps {
   orders: OrderEntry[];
+  contacts: DirectoryContact[];
   lang: Language;
   autoStartWizard?: boolean;
   externalSubView?: 'list' | 'wizard';
@@ -33,6 +36,7 @@ function getTodayDate(): string {
 
 export const OrderRegister: React.FC<OrderRegisterProps> = ({
   orders,
+  contacts,
   lang,
   autoStartWizard,
   externalSubView,
@@ -103,6 +107,22 @@ export const OrderRegister: React.FC<OrderRegisterProps> = ({
       label: t.customerMobileLabel,
       type: 'tel',
       placeholder: '0300-1234567',
+      renderExtra: (vals, setVals) => (
+        <ContactPickerFieldPanel
+          lang={lang}
+          contacts={contacts}
+          currentName={vals.customerName || ''}
+          currentPhone={vals.mobileNumber || ''}
+          onNotify={onNotify}
+          onSelectContact={(pickedName, pickedPhone) =>
+            setVals((prev) => ({
+              ...prev,
+              mobileNumber: pickedPhone || prev.mobileNumber,
+              customerName: pickedName || prev.customerName,
+            }))
+          }
+        />
+      ),
     },
     {
       key: 'goodsType',

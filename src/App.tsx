@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import {
   BookOpen,
@@ -45,11 +45,13 @@ import {
   uploadJsonBackupToDrive,
   uploadPdfBlobToDrive,
 } from './services/driveSync';
+import { buildSavedContactsDirectory } from './services/contacts';
 import {
   createEmptyDatabase,
   enqueuePendingPdf,
   getPendingPdfs,
   loadLedgerFromIndexedDb,
+  mergeImportedDriverSheets,
   migrateStationerySettings,
   removePendingPdf,
   saveLedgerToIndexedDb,
@@ -459,11 +461,11 @@ export default function App() {
     folderTreeRef.current = null;
 
     try {
-      const isLocalEmpty =
-        ledger.drivers.length === 0 &&
-        ledger.orders.length === 0 &&
-        ledger.bilties.length === 0 &&
-        ledger.rooznamcha.length === 0;
+      const hasLocalUserData =
+        ledger.syncMeta.lastLocalEditAt > 0 ||
+        ledger.orders.length > 0 ||
+        ledger.bilties.length > 0 ||
+        ledger.rooznamcha.length > 0;
 
       const tree = await getOrInitFolderTree(
         result.accessToken,
@@ -471,10 +473,11 @@ export default function App() {
       );
       const existing = await findBackupFile(result.accessToken, tree.dataBackupsId);
 
-      if (isLocalEmpty && existing) {
+      if (!hasLocalUserData && existing) {
         const remote = await downloadDriveBackup(result.accessToken, existing.id);
+        const { merged } = mergeImportedDriverSheets(remote.drivers || []);
         updateLedger((prev) => ({
-          drivers: remote.drivers || [],
+          drivers: merged,
           orders: remote.orders || [],
           bilties: remote.bilties || [],
           rooznamcha: remote.rooznamcha || [],
@@ -935,6 +938,10 @@ export default function App() {
 
   const t = TRANSLATIONS[lang];
   const totalPendingCount = ledger.syncMeta.pendingChanges + pendingPdfs.length;
+  const contactsDirectory = useMemo(
+    () => buildSavedContactsDirectory(ledger.drivers, ledger.orders, ledger.bilties),
+    [ledger.drivers, ledger.orders, ledger.bilties]
+  );
 
   const navItems: Array<{
     id: WorkspaceTab;
@@ -1260,6 +1267,7 @@ export default function App() {
                 {activeTab === 'drivers' && (
                   <DriverRegister
                     drivers={ledger.drivers}
+                    contacts={contactsDirectory}
                     settings={ledger.settings}
                     lang={lang}
                     autoStartWizard={startWizardTab === 'drivers'}
@@ -1277,6 +1285,7 @@ export default function App() {
                 {activeTab === 'orders' && (
                   <OrderRegister
                     orders={ledger.orders}
+                    contacts={contactsDirectory}
                     lang={lang}
                     autoStartWizard={startWizardTab === 'orders'}
                     externalSubView={subView === 'wizard' || subView === 'list' ? subView : 'list'}
